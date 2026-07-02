@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cat of the Day</title>
+<style>
+body {
+  font-family: Verdana, Arial, sans-serif;
+  background: #ffffff;
+  color: #000000;
+  margin: 10px;
+  font-size: 13px;
+}
+h1 {
+  font-size: 20px;
+  margin: 0 0 4px 0;
+}
+h2 {
+  font-size: 15px;
+  margin: 14px 0 4px 0;
+  border-bottom: 1px solid #000000;
+}
+table {
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+table, td, th {
+  border: 1px solid #999999;
+}
+td, th {
+  padding: 4px 6px;
+  vertical-align: top;
+}
+.imgbox {
+  width: 220px;
+  height: 220px;
+  background: #dddddd;
+  border: 1px solid #999999;
+  text-align: center;
+}
+.imgbox img {
+  max-width: 220px;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: auto;
+}
+select, textarea, input, button {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: 12px;
+}
+textarea {
+  width: 400px;
+  height: 60px;
+}
+button {
+  padding: 3px 8px;
+  margin: 2px;
+}
+.rowline {
+  margin: 3px 0;
+}
+.smalllink {
+  font-size: 11px;
+  color: #0000EE;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.nav {
+  margin-bottom: 8px;
+}
+.nav span {
+  margin-right: 10px;
+}
+.nav .on {
+  font-weight: bold;
+  text-decoration: none;
+  color: #000000;
+}
+.page {
+  display: none;
+}
+.page.on {
+  display: block;
+}
+.suspense {
+  font-style: italic;
+  color: #444444;
+}
+.flash {
+  animation: flashit 0.6s ease;
+}
+@keyframes flashit {
+  0% { background: #ffff99; }
+  100% { background: transparent; }
+}
+</style>
+</head>
+<body>
+
+<h1>Cat of the Day</h1>
+
+<div class="nav">
+<span class="smalllink" data-page="home">home</span>
+<span class="smalllink" data-page="trade">trade</span>
+<span class="smalllink" data-page="collection">collection</span>
+</div>
+
+<div id="page-home" class="page">
+<table>
+<tr>
+<td class="imgbox" id="today"><div>no cat yet</div></td>
+<td>
+<div class="rowline"><button id="grab">Grab today's cat</button></div>
+<div class="rowline">Cats owned: <b id="owned">0</b></div>
+<div class="rowline">Grabbed this week: <b id="week">0</b></div>
+<div class="rowline">Streak: <b id="streak">0</b> days</div>
+<div class="rowline">Cookie size: <span id="cookieSize">0</span> bytes</div>
+<div class="rowline"><span id="status">ready</span></div>
+<div class="rowline">
+<span class="smalllink" id="copySave">copy save</span> |
+<span class="smalllink" id="importSave">import save</span> |
+<span class="smalllink" id="deleteAll">delete all</span>
+</div>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="page-trade" class="page">
+<h2>Trade</h2>
+<table>
+<tr>
+<td>
+Offer one of your cats:<br>
+<select id="tradeCat"></select><br>
+<button id="makeTrade">make offer link</button><br>
+<textarea id="tradeLink" placeholder="link goes here"></textarea><br>
+<span class="smalllink" id="copyTrade">copy link</span> |
+<span class="smalllink" id="clearHash">clear opened trade</span>
+</td>
+<td>
+Incoming trade:<br>
+<div id="incoming">nothing opened</div>
+<br>
+paste a link:<br>
+<textarea id="manualLink"></textarea><br>
+<button id="openManual">open pasted link</button>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="page-collection" class="page">
+<h2>Your cats</h2>
+<table id="gridTable">
+<tr><td>none yet</td></tr>
+</table>
+</div>
+
+<script>
+(() => {
+const te=new TextEncoder()
+const td=new TextDecoder()
+const KEY="cat_day_lazy_v1"
+const SECRET="catday-static-trade-seal-2026-lazy-human-build"
+const rarities=[
+["Common",550000],
+["Uncommon",250000],
+["Rare",120000],
+["Epic",50000],
+["Legendary",20000],
+["Mythic",8500],
+["Mastery",1500]
+]
+
+let state=load()
+let incomingPacket=null
+
+function q(x){return document.querySelector(x)}
+
+function goPage(name){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"))
+  document.querySelectorAll(".nav span").forEach(s=>s.classList.remove("on"))
+  q("#page-"+name).classList.add("on")
+  document.querySelector(".nav span[data-page=\""+name+"\"]").classList.add("on")
+}
+document.querySelectorAll(".nav span").forEach(s=>{
+  s.onclick=()=>goPage(s.dataset.page)
+})
+function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function esc(x){return String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function msg(t){q("#status").textContent=t}
+
+function bytesTo64(buf){
+  let a=buf instanceof Uint8Array?buf:new Uint8Array(buf),s=""
+  for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode(...a.subarray(i,i+32768))
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")
+}
+function bytesFrom64(s){
+  s=s.replace(/-/g,"+").replace(/_/g,"/")
+  while(s.length%4)s+="="
+  let b=atob(s),a=new Uint8Array(b.length)
+  for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i)
+  return a
+}
+function pack(o){return bytesTo64(te.encode(JSON.stringify(o)))}
+function unpack(s){return JSON.parse(td.decode(bytesFrom64(s)))}
+
+function getCookie(n){
+  let m=document.cookie.match(new RegExp("(?:^|; )"+n.replace(/[.$?*|{}()[\]\\/+^]/g,"\\$&")+"=([^;]*)"))
+  return m?decodeURIComponent(m[1]):""
+}
+function setCookie(n,v){document.cookie=n+"="+encodeURIComponent(v)+"; Max-Age=31536000; Path=/; SameSite=Lax"}
+
+function freshState(){return{v:1,u:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),cats:[],grabs:[],lastDate:"",todayCat:null}}
+function tryRead(s){try{return s?unpack(s):null}catch(e){return null}}
+function load(){
+  let a=tryRead(localStorage.getItem(KEY)),b=tryRead(getCookie(KEY))
+  let s=a&&b?(a.cats.length>=b.cats.length?a:b):(a||b||freshState())
+  s.v=1
+  s.u=s.u||freshState().u
+  s.cats=Array.isArray(s.cats)?s.cats:[]
+  s.grabs=Array.isArray(s.grabs)?s.grabs:[]
+  return s
+}
+function save(){
+  state.cats=state.cats.filter(Boolean)
+  let full=pack(state)
+  try{localStorage.setItem(KEY,full)}catch(e){}
+  let cookieState=JSON.parse(JSON.stringify(state))
+  let packed=pack(cookieState)
+  if(packed.length>3800){
+    cookieState.cats=cookieState.cats.slice(0,28).map(c=>({id:c.id,api:c.api,url:c.url,hash:c.hash,rarity:c.rarity,got:c.got,breed:c.breed||""}))
+    packed=pack(cookieState)
+  }
+  setCookie(KEY,packed)
+  render()
+}
+
+async function shaBytes(buf){
+  let h=await crypto.subtle.digest("SHA-256",buf)
+  return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")
+}
+async function shaText(s){return shaBytes(te.encode(s))}
+function rarityFromHash(h){
+  let n=parseInt(h.slice(0,12),16)%1000000,total=0
+  for(let r of rarities){total+=r[1];if(n<total)return r[0]}
+  return"Common"
+}
+async function hashImage(url,id){
+  try{
+    let r=await fetch(url,{cache:"no-store",mode:"cors"})
+    if(!r.ok)throw 0
+    return await shaBytes(await r.arrayBuffer())
+  }catch(e){
+    return await shaText("fallback-image-hash:"+id+":"+url.split("?")[0])
+  }
+}
+async function fact(){
+  try{
+    let r=await fetch("https://catfact.ninja/fact",{cache:"no-store"})
+    let j=await r.json()
+    return j.fact||""
+  }catch(e){return""}
+}
+async function makeCat(base){
+  let imgHash=await hashImage(base.url,base.id)
+  let h=await shaText("cat-rarity-v1|"+base.id+"|"+base.url.split("?")[0]+"|"+imgHash)
+  return{id:base.id,api:base.api,url:base.url,hash:h,rarity:rarityFromHash(h),breed:base.breed||"",fact:base.fact||"",got:todayKey(),trade:false}
+}
+async function theCatApi(){
+  let r=await fetch("https://api.thecatapi.com/v1/images/search?limit=1&has_breeds=1&mime_types=jpg,png,gif&size=med",{cache:"no-store"})
+  let j=await r.json()
+  if(!j||!j[0]||!j[0].url)throw 0
+  let x=j[0]
+  return makeCat({id:"thecatapi:"+x.id,api:"TheCatAPI",url:x.url,breed:x.breeds&&x.breeds[0]?x.breeds[0].name:"",fact:await fact()})
+}
+async function cataas(){
+  let r=await fetch("https://cataas.com/cat?json=true",{cache:"no-store"})
+  let j=await r.json()
+  let id=j._id||j.id||j.file||String(Date.now())
+  let url=j.url?(j.url.startsWith("http")?j.url:"https://cataas.com"+j.url):"https://cataas.com/cat/"+id
+  return makeCat({id:"cataas:"+id,api:"Cataas",url:url,breed:"",fact:await fact()})
+}
+async function getCat(){
+  try{return await theCatApi()}catch(e){return await cataas()}
+}
+
+function addCat(c){
+  if(!c||!c.hash)return false
+  if(state.cats.some(x=>x.hash===c.hash))return false
+  c.got=c.got||todayKey()
+  state.cats.unshift(c)
+  return true
+}
+function removeCat(h){
+  let before=state.cats.length
+  state.cats=state.cats.filter(c=>c.hash!==h)
+  return state.cats.length!==before
+}
+function weekStart(d){
+  let x=new Date(d),day=(x.getDay()+6)%7
+  x.setHours(0,0,0,0)
+  x.setDate(x.getDate()-day)
+  return x
+}
+function weekCount(){
+  let a=weekStart(new Date()),b=new Date(a)
+  b.setDate(a.getDate()+7)
+  let set=new Set(state.grabs),n=0
+  for(let k of set){
+    let d=new Date(k+"T12:00:00")
+    if(d>=a&&d<b)n++
+  }
+  return n
+}
+function streak(){
+  let set=new Set(state.grabs),d=new Date(),n=0
+  while(set.has(todayKey(d))){n++;d.setDate(d.getDate()-1)}
+  return n
+}
+
+function row(c){
+  return"<tr><td class=\"imgbox\" style=\"width:90px;height:90px\"><img src=\""+esc(c.url)+"\" alt=\"cat\"></td>"
+    +"<td>"+esc(c.breed||"mystery cat")+"<br>"+esc(c.rarity)+"<br>"+esc(c.api||"unknown")+"<br>got "+esc(c.got||"")+"<br>"
+    +"<span class=\"smalllink\" data-act=\"offer\" data-h=\""+esc(c.hash)+"\">trade</span> | "
+    +"<span class=\"smalllink\" data-act=\"delete\" data-h=\""+esc(c.hash)+"\">delete</span>"
+    +"</td></tr>"
+}
+function mini(c){
+  return"<table><tr><td class=\"imgbox\" style=\"width:60px;height:60px\"><img src=\""+esc(c.url)+"\" alt=\"cat\"></td>"
+    +"<td>"+esc(c.breed||"mystery cat")+"<br>"+esc(c.rarity)+"<br>"+esc(c.api||"unknown")+"</td></tr></table>"
+}
+function options(){
+  return state.cats.map(c=>"<option value=\""+esc(c.hash)+"\">"+esc(c.rarity)+" - "+esc(c.breed||"mystery cat")+" - "+esc((c.hash||"").slice(0,8))+"</option>").join("")
+}
+
+function render(){
+  q("#owned").textContent=state.cats.length
+  q("#week").textContent=weekCount()
+  q("#streak").textContent=streak()
+  q("#cookieSize").textContent=getCookie(KEY).length
+  q("#gridTable").innerHTML=state.cats.length?state.cats.map(row).join(""):"<tr><td>none yet</td></tr>"
+  q("#tradeCat").innerHTML=state.cats.length?options():"<option>no cats yet</option>"
+  q("#grab").disabled=state.lastDate===todayKey()
+  if(state.todayCat){
+    q("#today").innerHTML="<img src=\""+esc(state.todayCat.url)+"\" alt=\"cat\">"
+  }else{
+    q("#today").innerHTML="<div>no cat yet</div>"
+  }
+}
+
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+
+async function grab(){
+  if(state.lastDate===todayKey()){msg("already grabbed today");return}
+  q("#grab").disabled=true
+  let steps=[
+    "looking for a cat...",
+    "something is out there...",
+    "getting closer...",
+    "almost got it..."
+  ]
+  let catPromise=getCat()
+  for(let s of steps){
+    q("#today").innerHTML="<div class=\"suspense\">"+s+"</div>"
+    await wait(650)
+  }
+  try{
+    let c=await catPromise
+    q("#today").innerHTML="<div class=\"suspense\">it's a...</div>"
+    await wait(900)
+    state.lastDate=todayKey()
+    state.todayCat=c
+    if(!state.grabs.includes(todayKey()))state.grabs.push(todayKey())
+    addCat(c)
+    save()
+    q("#today").classList.add("flash")
+    setTimeout(()=>q("#today").classList.remove("flash"),650)
+    msg("got a "+c.rarity+" cat")
+  }catch(e){
+    msg("cat apis failed, try again later")
+    q("#grab").disabled=false
+    render()
+  }
+}
+
+async function key(tag){
+  let base=await crypto.subtle.importKey("raw",te.encode(SECRET),"PBKDF2",false,["deriveKey"])
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt:te.encode(tag),iterations:85000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])
+}
+async function lock(obj){
+  let iv=crypto.getRandomValues(new Uint8Array(12))
+  let k=await key("trade-v1")
+  let ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,te.encode(JSON.stringify(obj)))
+  return pack({i:bytesTo64(iv),c:bytesTo64(ct)})
+}
+async function unlock(token){
+  let p=unpack(token),k=await key("trade-v1")
+  let plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:bytesFrom64(p.i)},k,bytesFrom64(p.c))
+  return JSON.parse(td.decode(plain))
+}
+function cleanCat(c){
+  return{id:c.id,api:c.api,url:c.url,hash:c.hash,rarity:c.rarity,breed:c.breed||"",fact:c.fact||"",got:c.got||todayKey(),trade:true}
+}
+function base(){return location.href.split("#")[0]}
+
+async function makeOffer(){
+  let h=q("#tradeCat").value,c=state.cats.find(x=>x.hash===h)
+  if(!c){msg("pick a cat first");return}
+  let offerId=(await shaText(state.u+c.hash+Date.now()+Math.random())).slice(0,32)
+  let token=await lock({type:"offer",v:1,offerId,from:state.u,made:Date.now(),expires:Date.now()+604800000,cat:cleanCat(c)})
+  q("#tradeLink").value=base()+"#offer="+token
+  msg("offer link made")
+}
+
+function selectHtml(id){return"<select id=\""+id+"\">"+options()+"</select>"}
+
+function showIncoming(o){
+  incomingPacket=o
+  if(o.type==="offer"){
+    let expired=Date.now()>o.expires
+    q("#incoming").innerHTML=(expired?"<div>this offer is expired</div>":"")
+      +mini(o.cat)
+      +"<br>pick one of yours to send back:<br>"
+      +selectHtml("replyPick")
+      +"<br><button data-incoming=\"reply\" "+(expired?"disabled":"")+">generate reply link</button>"
+  }
+  if(o.type==="reply"){
+    q("#incoming").innerHTML="you offered:<br>"+mini(o.offer.cat)
+      +"they offered:<br>"+mini(o.answer)
+      +"<br><button data-incoming=\"acceptReply\">accept and generate final link</button>"
+  }
+  if(o.type==="final"){
+    q("#incoming").innerHTML="you send:<br>"+mini(o.answer)
+      +"you receive:<br>"+mini(o.offer.cat)
+      +"<br><button data-incoming=\"finishFinal\">finish trade</button>"
+  }
+}
+
+async function readHash(){
+  let h=location.hash.slice(1)
+  if(!h){q("#incoming").innerHTML="nothing opened";incomingPacket=null;return}
+  let i=h.indexOf("=")
+  if(i<0)return
+  let type=h.slice(0,i),token=h.slice(i+1)
+  if(!["offer","reply","final"].includes(type))return
+  try{
+    let o=await unlock(token)
+    if(o.type!==type)throw 0
+    showIncoming(o)
+    msg("trade link opened")
+  }catch(e){
+    q("#incoming").innerHTML="bad or edited trade link"
+  }
+}
+
+async function replyTrade(){
+  let c=state.cats.find(x=>x.hash===q("#replyPick").value)
+  if(!c||!incomingPacket||incomingPacket.type!=="offer"){msg("no cat selected");return}
+  if(c.hash===incomingPacket.cat.hash){msg("you already own that exact cat");return}
+  let replyId=(await shaText(state.u+c.hash+Date.now()+Math.random())).slice(0,32)
+  let token=await lock({type:"reply",v:1,replyId,from:state.u,made:Date.now(),expires:Date.now()+604800000,offer:incomingPacket,answer:cleanCat(c)})
+  q("#tradeLink").value=base()+"#reply="+token
+  msg("reply link made")
+}
+async function acceptReply(){
+  let o=incomingPacket
+  if(!o||o.type!=="reply"){msg("no reply loaded");return}
+  if(o.offer.from!==state.u){msg("this reply is not for this save");return}
+  let mine=state.cats.find(c=>c.hash===o.offer.cat.hash)
+  if(!mine){msg("you no longer have the cat you offered");return}
+  removeCat(mine.hash)
+  addCat(Object.assign({},o.answer,{got:todayKey(),trade:true}))
+  let token=await lock({type:"final",v:1,made:Date.now(),offer:o.offer,answer:o.answer,acceptedBy:state.u})
+  q("#tradeLink").value=base()+"#final="+token
+  save()
+  msg("trade accepted, send the final link back")
+}
+function finishFinal(){
+  let o=incomingPacket
+  if(!o||o.type!=="final"){msg("no final trade loaded");return}
+  let sent=state.cats.find(c=>c.hash===o.answer.hash)
+  if(!sent){msg("you no longer have the cat you promised");return}
+  removeCat(sent.hash)
+  addCat(Object.assign({},o.offer.cat,{got:todayKey(),trade:true}))
+  save()
+  msg("trade finished")
+}
+
+q("#grab").onclick=grab
+q("#makeTrade").onclick=makeOffer
+q("#copyTrade").onclick=async()=>{
+  let v=q("#tradeLink").value
+  if(!v)return msg("no trade link to copy")
+  await navigator.clipboard.writeText(v)
+  msg("trade link copied")
+}
+q("#clearHash").onclick=()=>{
+  history.replaceState(null,"",base())
+  readHash()
+  msg("trade view cleared")
+}
+q("#deleteAll").onclick=()=>{
+  let x=prompt("type DELETE ALL to erase every cat, streak, and save data")
+  if(x==="DELETE ALL"){state=freshState();save();msg("everything deleted")}
+}
+q("#copySave").onclick=async()=>{
+  await navigator.clipboard.writeText(pack(state))
+  msg("save copied")
+}
+q("#importSave").onclick=()=>{
+  let s=prompt("paste your copied save here")
+  if(!s)return
+  try{
+    let n=unpack(s)
+    if(!n||!Array.isArray(n.cats))throw 0
+    state=n
+    save()
+    msg("save imported")
+  }catch(e){msg("bad save data")}
+}
+q("#openManual").onclick=()=>{
+  let v=q("#manualLink").value.trim()
+  if(!v)return
+  let hash=v.includes("#")?v.slice(v.indexOf("#")):v
+  location.hash=hash
+}
+q("#gridTable").onclick=e=>{
+  let b=e.target.closest("[data-act]")
+  if(!b)return
+  let h=b.dataset.h
+  if(b.dataset.act==="delete"){
+    if(confirm("delete this cat?")){removeCat(h);save();msg("cat deleted")}
+  }
+  if(b.dataset.act==="offer"){
+    q("#tradeCat").value=h
+    msg("cat selected for trade")
+  }
+}
+q("#incoming").onclick=e=>{
+  let b=e.target.closest("button")
+  if(!b)return
+  if(b.dataset.incoming==="reply")replyTrade()
+  if(b.dataset.incoming==="acceptReply")acceptReply()
+  if(b.dataset.incoming==="finishFinal")finishFinal()
+}
+window.addEventListener("hashchange",readHash)
+
+render()
+readHash()
+goPage("home")
+})()
+</script>
+</body>
+</html>
