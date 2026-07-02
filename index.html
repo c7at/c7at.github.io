@@ -4,307 +4,299 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cat of the Day</title>
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 <style>
-body {
-  margin: 0;
-  padding: 20px;
-  font-family: Verdana, Arial, sans-serif;
-  font-size: 13px;
-  color: #000000;
-  background: #ffffff;
-  display: flex;
-  justify-content: center;
+body{
+  margin:0;
+  padding:16px;
+  background:#fff;
+  color:#000;
+  font-family:Verdana,Arial,sans-serif;
+  font-size:13px;
+  display:flex;
+  justify-content:center;
 }
-.wrap {
-  width: 480px;
-  max-width: 100%;
+.wrap{
+  width:420px;
+  max-width:100%;
 }
-h1 {
-  font-size: 18px;
-  margin: 0 0 8px 0;
-  text-align: center;
+h1{
+  font-size:18px;
+  margin:0 0 8px;
+  text-align:center;
 }
-h2 {
-  font-size: 14px;
-  margin: 14px 0 4px 0;
-  border-bottom: 1px solid #000000;
+h2{
+  font-size:14px;
+  margin:10px 0 5px;
+  border-bottom:1px solid #000;
 }
-table {
-  border-collapse: collapse;
-  margin: 0 auto 10px auto;
+table{
+  border-collapse:collapse;
+  width:100%;
+  margin:6px 0;
 }
-table, td, th {
-  border: 1px solid #999999;
+td,th{
+  border:1px solid #999;
+  padding:5px;
+  vertical-align:top;
 }
-td, th {
-  padding: 4px 6px;
-  vertical-align: top;
+button,input,select,textarea{
+  font-family:Verdana,Arial,sans-serif;
+  font-size:12px;
 }
-.imgbox {
-  width: 220px;
-  height: 220px;
-  background: #dddddd;
-  border: 1px solid #999999;
-  text-align: center;
+button{
+  padding:4px 8px;
+  margin:2px;
 }
-.imgbox img {
-  max-width: 220px;
-  max-height: 220px;
-  width: auto;
-  height: auto;
-  display: block;
-  margin: auto;
+.nav{
+  text-align:center;
+  margin:8px 0;
 }
-select, textarea, input, button {
-  font-family: Verdana, Arial, sans-serif;
-  font-size: 12px;
+.nav button{
+  width:30%;
 }
-button {
-  padding: 3px 8px;
-  margin: 2px 0;
+.page{
+  display:none;
 }
-.rowline {
-  margin: 4px 0;
+.page.on{
+  display:block;
 }
-.smalllink {
-  font-size: 11px;
-  color: #0000EE;
-  text-decoration: underline;
-  cursor: pointer;
+.imgbox{
+  width:220px;
+  height:220px;
+  margin:0 auto;
+  background:#ddd;
+  border:1px solid #999;
+  text-align:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
-.nav {
-  text-align: center;
-  margin-bottom: 10px;
+.imgbox img{
+  max-width:220px;
+  max-height:220px;
+  display:block;
 }
-.nav span {
-  margin: 0 8px;
+.catimg{
+  width:58px;
+  height:58px;
+  object-fit:contain;
+  background:#ddd;
+  border:1px solid #999;
 }
-.nav .on {
-  font-weight: bold;
-  text-decoration: none;
-  color: #000000;
+.tiny{
+  font-size:11px;
+  color:#333;
 }
-.page {
-  display: none;
+.link{
+  color:#00e;
+  text-decoration:underline;
+  cursor:pointer;
 }
-.page.on {
-  display: block;
+.badge{
+  border:1px solid #000;
+  padding:1px 5px;
+  font-size:11px;
 }
-hr {
-  border: 0;
-  border-top: 1px dashed #aaaaaa;
-  margin: 8px 0;
+.box{
+  border:1px solid #999;
+  background:#eee;
+  padding:6px;
+  margin:6px 0;
 }
-.rslot {
-  font-weight: bold;
-  font-size: 15px;
-  padding: 4px 10px;
-  border: 1px solid #000000;
-  background: #ffffff;
-  display: inline-block;
+.full{
+  width:96%;
 }
-@keyframes flick {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+.row{
+  margin:6px 0;
 }
-.flicker {
-  animation: flick 0.12s steps(1, end) infinite;
+.dead{
+  color:#777;
+  text-decoration:line-through;
 }
-@keyframes flashit {
-  0% { background: #ffff99; }
-  100% { background: transparent; }
+@keyframes flick{
+  0%{opacity:1}
+  50%{opacity:.45}
+  100%{opacity:1}
 }
-.flash {
-  animation: flashit 0.6s steps(3, end);
+.flicker{
+  animation:flick .12s steps(1,end) infinite;
 }
-.badge {
-  border: 1px solid #000000;
-  padding: 1px 5px;
-  font-size: 11px;
+@keyframes flashit{
+  0%{background:#ff9}
+  100%{background:transparent}
+}
+.flash{
+  animation:flashit .6s steps(3,end);
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-
 <h1>Cat of the Day <span id="userTag"></span></h1>
 
-<div class="nav" style="display:none">
-<span class="smalllink" data-page="home">home</span>
-<span class="smalllink" data-page="trade">trade</span>
-<span class="smalllink" data-page="collection">collection</span>
-</div>
-
-<div id="page-gate" class="page on">
-<h2>pick a 3 letter user tag</h2>
-<div class="rowline">this app does not let you use it anonymously, every trade shows only your 3 letter tag</div>
-<input id="tagInput" maxlength="3" style="text-transform:uppercase;width:60px">
-<button id="setTag">enter</button>
-<div id="gateMsg" class="rowline"></div>
-</div>
-
-<div id="page-home" class="page">
+<div id="gate" class="page on">
+<h2>Name</h2>
 <table>
-<tr>
-<td class="imgbox" id="today"><div>no cat yet</div></td>
-</tr>
+<tr><td><input id="nameInput" maxlength="12" class="full"></td></tr>
+<tr><td><button id="setName">Start</button></td></tr>
 </table>
-<div class="rowline" style="text-align:center"><button id="grab">Grab today's cat</button></div>
-<table style="width:100%">
-<tr><td>Cats owned</td><td id="owned">0</td></tr>
-<tr><td>Grabbed this week</td><td id="week">0</td></tr>
-<tr><td>Streak</td><td id="streak">0</td></tr>
+<div id="gateMsg" class="row"></div>
+</div>
+
+<div id="app" style="display:none">
+<div class="nav">
+<button data-page="home">Cat</button>
+<button data-page="cats">Cats</button>
+<button data-page="trade">Trade</button>
+</div>
+
+<div id="home" class="page">
+<div id="today" class="imgbox">No cat</div>
+<div class="row" style="text-align:center">
+<button id="grab">Grab</button>
+</div>
+<table>
+<tr><td>Cats</td><td id="owned">0</td></tr>
 <tr><td>Ração</td><td id="currency">0</td></tr>
+<tr><td>Streak</td><td id="streak">0</td></tr>
 </table>
-<div class="rowline" id="status">ready</div>
-<div class="rowline"><span class="smalllink" id="deleteAll">delete all</span></div>
+<div id="status" class="box">Ready</div>
 </div>
 
-<div id="page-trade" class="page">
-<h2>post a trade offer</h2>
-<div class="rowline">the trade board is public, other users can see your tag and what you offer</div>
+<div id="cats" class="page">
+<h2>Cats</h2>
+<table id="catTable">
+<tr><td>None</td></tr>
+</table>
+<div class="row"><span id="deleteAll" class="link">Reset</span></div>
+</div>
+
+<div id="trade" class="page">
+<h2>Trade</h2>
+<div class="box">
+<div class="row">Offer</div>
 <div id="offerPicker"></div>
-<div class="rowline">Ração to include <input id="offerCurrency" type="number" min="0" value="0" style="width:70px"></div>
-<button id="postOffer">post offer</button>
-<div id="postMsg" class="rowline"></div>
-
-<div id="offerDetail"></div>
-
-<h2>your offers</h2>
-<div id="myOffersList">none</div>
-
-<h2>your proposals</h2>
-<div id="myProposalsList">none</div>
-
-<h2>open trades <span class="smalllink" data-act="refreshBoard">refresh</span></h2>
-<div id="boardList">not loaded</div>
+<div class="row">Ração <input id="offerCurrency" type="number" min="0" value="0" style="width:70px"> <span class="link" data-act="maxCurrency" data-target="offerCurrency">max</span></div>
+<button id="makeTrade">Make link</button>
+<div id="tradeMsg" class="row"></div>
 </div>
 
-<div id="page-collection" class="page">
-<h2>your cats</h2>
-<table id="gridTable">
-<tr><td>none yet</td></tr>
-</table>
+<div id="liveRoom"></div>
+
+<details>
+<summary>Links</summary>
+<div id="myLinks">None</div>
+</details>
+
+<details>
+<summary>Joined</summary>
+<div id="joinedLinks">None</div>
+</details>
+</div>
+</div>
 </div>
 
-</div>
 <script>
 (() => {
-const te = new TextEncoder()
-const td = new TextDecoder()
-const SECRET = "catday-static-trade-seal-2026-lazy-human-build"
-const rarities = [
-["Common",550000],
-["Uncommon",250000],
-["Rare",120000],
-["Epic",50000],
-["Legendary",20000],
-["Mythic",8500],
-["Mastery",1500]
-]
+const te=new TextEncoder()
+const td=new TextDecoder()
+const APP="catday-simple-static-v1"
+const SAVE="catday_simple_save_v1"
+const rarities=[["Common",550000],["Uncommon",250000],["Rare",120000],["Epic",50000],["Legendary",20000],["Mythic",8500],["Mastery",1500]]
+let state=freshState()
+let gun=null
+let root=null
+let watches={}
+let room=null
+try{
+  if(window.Gun){
+    gun=Gun({peers:["https://gun-manhattan.herokuapp.com/gun","https://gunjs.herokuapp.com/gun","https://relay.peer.ooo/gun"]})
+    root=gun.get(APP)
+  }
+}catch(e){}
 
-let state = freshState()
-
-function freshState(){return{tag:"",currency:0,cats:[],grabs:[],lastDate:"",todayCat:null,myOffers:[],myProposals:[]}}
+function freshState(){
+  return{username:"",sid:rid(12),racao:0,cats:[],grabs:[],lastDate:"",todayCat:null,createdTrades:[],joinedTrades:[],doneTrades:[]}
+}
 function q(x){return document.querySelector(x)}
 function esc(x){return String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
-function msg(t){q("#status").textContent=t}
+function msg(x){q("#status").textContent=x}
+function tmsg(x){q("#tradeMsg").textContent=x}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function base(){return location.href.split("#")[0]}
-function shortId(){return Math.random().toString(36).slice(2,8).toUpperCase()}
-
-function bytesTo64(buf){
-  let a=buf instanceof Uint8Array?buf:new Uint8Array(buf),s=""
-  for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode(...a.subarray(i,i+32768))
-  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")
-}
-function bytesFrom64(s){
-  s=s.replace(/-/g,"+").replace(/_/g,"/")
-  while(s.length%4)s+="="
-  let b=atob(s),a=new Uint8Array(b.length)
-  for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i)
-  return a
-}
-function canon(o){
-  if(Array.isArray(o))return "["+o.map(canon).join(",")+"]"
-  if(o&&typeof o==="object")return "{"+Object.keys(o).sort().map(k=>JSON.stringify(k)+":"+canon(o[k])).join(",")+"}"
-  return JSON.stringify(o)
-}
-async function hmacKey(){
-  return crypto.subtle.importKey("raw",te.encode(SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign","verify"])
-}
-async function signObj(o){
-  let k=await hmacKey()
-  let sig=await crypto.subtle.sign("HMAC",k,te.encode(canon(o)))
-  return bytesTo64(sig)
-}
-async function wrapSigned(o){
-  return JSON.stringify({d:o,s:await signObj(o)})
-}
-async function unwrapSigned(text){
-  try{
-    let p=JSON.parse(text)
-    if(!p||!p.d||!p.s)return null
-    let k=await hmacKey()
-    let ok=await crypto.subtle.verify("HMAC",k,bytesFrom64(p.s),te.encode(canon(p.d)))
-    return ok?p.d:null
-  }catch(e){return null}
-}
-
-async function storageGet(key,shared){
-  try{let r=await window.storage.get(key,shared);return r?r.value:null}catch(e){return null}
-}
-async function storageSet(key,val,shared){
-  try{return await window.storage.set(key,val,shared)}catch(e){return null}
-}
-async function storageDelete(key,shared){
-  try{return await window.storage.delete(key,shared)}catch(e){return null}
-}
-async function storageList(prefix,shared){
-  try{let r=await window.storage.list(prefix,shared);return (r&&r.keys)||[]}catch(e){return[]}
-}
-
-function sanitizeTag(t){
-  let s=String(t||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,3)
-  while(s.length<3)s+="?"
-  return s
-}
-function sanitizeCurrency(n){
-  n=parseInt(n)
-  if(!Number.isFinite(n)||n<0)n=0
-  return Math.min(n,999999)
-}
-function sanitizeCats(arr){
-  if(!Array.isArray(arr))return[]
-  return arr.slice(0,6).map(c=>({
+function cleanUser(x){return String(x||"").replace(/[^a-z]/gi,"").slice(0,12)}
+function cleanCatName(x){return String(x||"").replace(/[\r\n\t]/g," ").replace(/\s+/g," ").slice(0,24)}
+function rid(n){let a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",s="";for(let i=0;i<n;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function safeNum(n){n=parseInt(n);if(!Number.isFinite(n)||n<0)n=0;return Math.min(n,999999)}
+function bytesTo64(buf){let a=buf instanceof Uint8Array?buf:new Uint8Array(buf),s="";for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode(...a.subarray(i,i+32768));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
+function bytesFrom64(s){s=String(s||"").replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";let b=atob(s),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+function newKey(){let a=new Uint8Array(16);crypto.getRandomValues(a);return bytesTo64(a)}
+async function aes(k){return crypto.subtle.importKey("raw",bytesFrom64(k),"AES-GCM",false,["encrypt","decrypt"])}
+async function lock(k,o){let iv=new Uint8Array(12);crypto.getRandomValues(iv);let key=await aes(k);let enc=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,te.encode(JSON.stringify(o)));return bytesTo64(iv)+"."+bytesTo64(enc)}
+async function unlock(k,s){try{let p=String(s||"").split(".");if(p.length!==2)return null;let key=await aes(k);let dec=await crypto.subtle.decrypt({name:"AES-GCM",iv:bytesFrom64(p[0])},key,bytesFrom64(p[1]));return JSON.parse(td.decode(dec))}catch(e){return null}}
+async function shaBytes(buf){let h=await crypto.subtle.digest("SHA-256",buf);return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function shaText(s){return shaBytes(te.encode(s))}
+function rarityFromHash(h){let n=parseInt(h.slice(0,12),16)%1000000,total=0;for(let r of rarities){total+=r[1];if(n<total)return r[0]}return"Common"}
+function setCookie(n,v,days){let d=new Date();d.setTime(d.getTime()+days*86400000);document.cookie=n+"="+encodeURIComponent(v)+";expires="+d.toUTCString()+";path=/;SameSite=Lax"}
+function getCookie(n){let a=document.cookie.split(";");for(let c of a){c=c.trim();if(c.indexOf(n+"=")===0)return decodeURIComponent(c.slice(n.length+1))}return""}
+function delCookie(n){document.cookie=n+"=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax"}
+function saveChunks(name,val){for(let i=0;i<60;i++)delCookie(name+"_"+i);let size=3000,chunks=[];for(let i=0;i<val.length;i+=size)chunks.push(val.slice(i,i+size));setCookie(name+"_count",String(chunks.length),365);for(let i=0;i<chunks.length;i++)setCookie(name+"_"+i,chunks[i],365)}
+function readChunks(name){let n=parseInt(getCookie(name+"_count"));if(!Number.isFinite(n)||n<1)return"";let s="";for(let i=0;i<n;i++){let p=getCookie(name+"_"+i);if(!p)return"";s+=p}return s}
+function saveLocal(v){try{localStorage.setItem(SAVE,v)}catch(e){}}
+function readLocal(){try{return localStorage.getItem(SAVE)||""}catch(e){return""}}
+function saveProfile(){let v=bytesTo64(te.encode(JSON.stringify(state)));saveChunks(SAVE,v);saveLocal(v)}
+function loadProfile(){let v=readChunks(SAVE)||readLocal();if(!v)return null;try{return JSON.parse(td.decode(bytesFrom64(v)))}catch(e){return null}}
+function cleanCat(c){
+  return{
+    id:String((c&&c.id)||"").slice(0,100),
     hash:String((c&&c.hash)||"").slice(0,80),
     rarity:rarities.some(r=>r[0]===(c&&c.rarity))?c.rarity:"Common",
     breed:String((c&&c.breed)||"").slice(0,60),
     api:String((c&&c.api)||"").slice(0,30),
-    url:String((c&&c.url)||"").slice(0,300)
-  }))
+    url:String((c&&c.url)||"").slice(0,500),
+    got:String((c&&c.got)||todayKey()).slice(0,12),
+    name:cleanCatName((c&&c.name)||""),
+    trade:!!(c&&c.trade)
+  }
 }
-
-async function shaBytes(buf){
-  let h=await crypto.subtle.digest("SHA-256",buf)
-  return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")
+function cleanTradeMini(x){
+  return{
+    id:String((x&&x.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    k:String((x&&x.k)||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40),
+    link:String((x&&x.link)||"").slice(0,500),
+    short:String((x&&x.short)||"").slice(0,500),
+    status:String((x&&x.status)||"open").slice(0,30),
+    made:safeNum((x&&x.made)||Date.now()),
+    offerHashes:Array.isArray(x&&x.offerHashes)?x.offerHashes.map(h=>String(h).slice(0,80)).slice(0,12):[],
+    offerCurrency:safeNum(x&&x.offerCurrency),
+    proposalHashes:Array.isArray(x&&x.proposalHashes)?x.proposalHashes.map(h=>String(h).slice(0,80)).slice(0,12):[],
+    proposalCurrency:safeNum(x&&x.proposalCurrency)
+  }
 }
-async function shaText(s){return shaBytes(te.encode(s))}
-function rarityFromHash(h){
-  let n=parseInt(h.slice(0,12),16)%1000000,total=0
-  for(let r of rarities){total+=r[1];if(n<total)return r[0]}
-  return"Common"
+function normalizeState(s){
+  let n=freshState()
+  if(!s||typeof s!=="object")return n
+  n.username=cleanUser(s.username)
+  n.sid=String(s.sid||rid(12)).slice(0,30)
+  n.racao=safeNum(s.racao)
+  n.cats=Array.isArray(s.cats)?s.cats.map(cleanCat).filter(c=>c.hash).slice(0,120):[]
+  n.grabs=Array.isArray(s.grabs)?s.grabs.map(x=>String(x).slice(0,12)).slice(-120):[]
+  n.lastDate=String(s.lastDate||"").slice(0,12)
+  n.todayCat=s.todayCat?cleanCat(s.todayCat):null
+  n.createdTrades=Array.isArray(s.createdTrades)?s.createdTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-50):[]
+  n.joinedTrades=Array.isArray(s.joinedTrades)?s.joinedTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-50):[]
+  n.doneTrades=Array.isArray(s.doneTrades)?s.doneTrades.map(x=>String(x).slice(0,80)).slice(-200):[]
+  return n
 }
-function rclass(r){return"r"+String(r).replace(/\W/g,"")}
 async function hashImage(url,id){
   try{
     let r=await fetch(url,{cache:"no-store",mode:"cors"})
     if(!r.ok)throw 0
     return await shaBytes(await r.arrayBuffer())
   }catch(e){
-    return await shaText("fallback-image-hash:"+id+":"+url.split("?")[0])
+    return await shaText("fallback:"+id+":"+String(url).split("?")[0])
   }
 }
 async function fact(){
@@ -312,12 +304,14 @@ async function fact(){
     let r=await fetch("https://catfact.ninja/fact",{cache:"no-store"})
     let j=await r.json()
     return j.fact||""
-  }catch(e){return""}
+  }catch(e){
+    return""
+  }
 }
 async function makeCat(b){
   let imgHash=await hashImage(b.url,b.id)
-  let h=await shaText("cat-rarity-v1|"+b.id+"|"+b.url.split("?")[0]+"|"+imgHash)
-  return{id:b.id,api:b.api,url:b.url,hash:h,rarity:rarityFromHash(h),breed:b.breed||"",fact:b.fact||"",got:todayKey(),trade:false}
+  let h=await shaText("cat-rarity-v4|"+b.id+"|"+b.url.split("?")[0]+"|"+imgHash)
+  return{id:b.id,api:b.api,url:b.url,hash:h,rarity:rarityFromHash(h),breed:b.breed||"",fact:b.fact||"",got:todayKey(),name:"",trade:false}
 }
 async function theCatApi(){
   let r=await fetch("https://api.thecatapi.com/v1/images/search?limit=1&has_breeds=1&mime_types=jpg,png,gif&size=med",{cache:"no-store"})
@@ -336,411 +330,497 @@ async function cataas(){
 async function getCat(){
   try{return await theCatApi()}catch(e){return await cataas()}
 }
-
 function addCat(c){
-  if(!c||!c.hash)return false
+  c=cleanCat(c)
+  if(!c.hash)return false
   if(state.cats.some(x=>x.hash===c.hash))return false
-  c.got=c.got||todayKey()
   state.cats.unshift(c)
   return true
 }
 function removeCat(h){
-  let before=state.cats.length
+  let n=state.cats.length
   state.cats=state.cats.filter(c=>c.hash!==h)
-  return state.cats.length!==before
+  return state.cats.length!==n
 }
-function cleanCat(c){return{hash:c.hash,rarity:c.rarity,breed:c.breed||"",api:c.api||"",url:c.url}}
-function weekStart(d){
-  let x=new Date(d),day=(x.getDay()+6)%7
-  x.setHours(0,0,0,0)
-  x.setDate(x.getDate()-day)
-  return x
-}
-function weekCount(){
-  let a=weekStart(new Date()),b=new Date(a)
-  b.setDate(a.getDate()+7)
-  let set=new Set(state.grabs),n=0
-  for(let k of set){
-    let d=new Date(k+"T12:00:00")
-    if(d>=a&&d<b)n++
-  }
-  return n
-}
+function findCat(h){return state.cats.find(c=>c.hash===h)}
+function copyCat(c){return cleanCat(c)}
 function streak(){
   let set=new Set(state.grabs),d=new Date(),n=0
   while(set.has(todayKey(d))){n++;d.setDate(d.getDate()-1)}
   return n
 }
-
-async function loadProfile(){
-  let raw=await storageGet("save",false)
-  if(!raw)return null
-  return await unwrapSigned(raw)
+function catName(c){return esc(c.name||c.breed||"cat")}
+function catLine(c){
+  return"<tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.breed||"mystery")+" · "+esc(c.hash.slice(0,6))+"</span></td></tr>"
 }
-async function saveProfile(){
-  let text=await wrapSigned(state)
-  await storageSet("save",text,false)
+function catMini(c){
+  return"<table><tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.hash.slice(0,6))+"</span></td></tr></table>"
 }
-
-async function claimTag(t){
-  let key="tagres:"+t
-  let existing=await storageGet(key,true)
-  if(existing)return false
-  await storageSet(key,"1",true)
-  return true
+function catsText(cats){
+  if(!cats||!cats.length)return"None"
+  return cats.map(catMini).join("")
 }
-
-function row(c){
-  return "<tr><td class=\"imgbox\" style=\"width:90px;height:90px\"><img src=\""+esc(c.url)+"\" alt=\"cat\"></td>"
-    +"<td>"+esc(c.breed||"mystery cat")+"<br>"+esc(c.rarity)+"<br>"+esc(c.api||"unknown")+"<br>got "+esc(c.got||"")+"<br>"
-    +"<span class=\"smalllink\" data-act=\"delete\" data-h=\""+esc(c.hash)+"\">delete</span>"
-    +"</td></tr>"
+function selected(name){
+  return[...document.querySelectorAll("input[name='"+name+"']:checked")].map(x=>x.value)
 }
-
+function selectedCats(name){
+  return selected(name).map(findCat).filter(Boolean)
+}
+function pickerHtml(name){
+  if(!state.cats.length)return"<div>None</div>"
+  return"<table>"+state.cats.map(c=>"<tr><td style=\"width:25px\"><input type=\"checkbox\" name=\""+esc(name)+"\" value=\""+esc(c.hash)+"\"></td><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span></td></tr>").join("")+"</table>"
+}
+function capCurrency(id){
+  let x=q("#"+id)
+  if(!x)return 0
+  let v=safeNum(x.value)
+  if(v>state.racao)v=state.racao
+  x.value=v
+  return v
+}
 function render(){
   q("#owned").textContent=state.cats.length
-  q("#week").textContent=weekCount()
+  q("#currency").textContent=state.racao
   q("#streak").textContent=streak()
-  q("#currency").textContent=state.currency
-  q("#gridTable").innerHTML=state.cats.length?state.cats.map(row).join(""):"<tr><td>none yet</td></tr>"
   q("#grab").disabled=state.lastDate===todayKey()
-  if(state.todayCat&&state.lastDate===todayKey()){
-    q("#today").innerHTML="<img src=\""+esc(state.todayCat.url)+"\" alt=\"cat\">"
-  }else{
-    q("#today").innerHTML="<div>no cat yet</div>"
-  }
-  q("#userTag").textContent="["+sanitizeTag(state.tag)+"]"
+  q("#userTag").textContent=state.username?"["+state.username+"]":""
+  q("#catTable").innerHTML=state.cats.length?state.cats.map(collectionRow).join(""):"<tr><td>None</td></tr>"
+  if(state.todayCat&&state.lastDate===todayKey())q("#today").innerHTML="<img src=\""+esc(state.todayCat.url)+"\" alt=\"cat\">"
+  else q("#today").innerHTML="No cat"
+  if(q("#trade").classList.contains("on"))renderTrade()
 }
-
+function collectionRow(c){
+  return"<tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><input data-act=\"rename\" data-h=\""+esc(c.hash)+"\" value=\""+esc(c.name||"")+"\" maxlength=\"24\" class=\"full\"><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.breed||"mystery")+" · "+esc(c.got||"")+"</span><br><span class=\"link\" data-act=\"delete\" data-h=\""+esc(c.hash)+"\">delete</span></td></tr>"
+}
 async function grab(){
-  if(state.lastDate===todayKey()){msg("already grabbed today");return}
+  if(state.lastDate===todayKey()){msg("Already grabbed");return}
   q("#grab").disabled=true
   let box=q("#today")
   box.classList.add("flicker")
   let catPromise=getCat()
   let names=rarities.map(r=>r[0])
-  let ticks=26
-  for(let i=0;i<ticks;i++){
-    let r=names[Math.floor(Math.random()*names.length)]
-    box.innerHTML="<span class=\"rslot\">"+r+"</span>"
-    await wait(35+i*7)
+  for(let i=0;i<22;i++){
+    box.innerHTML="<b>"+names[Math.floor(Math.random()*names.length)]+"</b>"
+    await wait(35+i*6)
   }
   try{
     let c=await catPromise
-    box.innerHTML="<span class=\"rslot\">...</span>"
-    await wait(500)
     box.classList.remove("flicker")
     state.lastDate=todayKey()
     state.todayCat=c
     if(!state.grabs.includes(todayKey()))state.grabs.push(todayKey())
     addCat(c)
-    state.currency+=500
-    await saveProfile()
+    state.racao+=500
+    saveProfile()
     box.classList.add("flash")
     setTimeout(()=>box.classList.remove("flash"),650)
-    msg("got a "+c.rarity+" cat, +500 Racao")
+    msg(c.rarity+" cat. +500 Ração")
     render()
   }catch(e){
     box.classList.remove("flicker")
-    msg("cat apis failed, try again later")
+    msg("Try again")
     q("#grab").disabled=false
     render()
   }
 }
-
-function pickerHtml(name){
-  if(!state.cats.length)return "<div>you have no cats</div>"
-  return state.cats.map(c=>"<label class=\"rowline\" style=\"display:block\"><input type=\"checkbox\" name=\""+name+"\" value=\""+esc(c.hash)+"\"> "+esc(c.rarity)+" "+esc(c.breed||"cat")+" ("+esc((c.hash||"").slice(0,6))+")</label>").join("")
+function liveNode(id){
+  if(!root)return null
+  return root.get(id)
 }
-function cats2text(cats){
-  if(!cats||!cats.length)return "nothing"
-  return cats.map(c=>esc(c.rarity)).join(", ")+" ("+cats.length+" cat"+(cats.length>1?"s":"")+")"
+function livePut(id,field,val){
+  let n=liveNode(id)
+  if(!n)return false
+  n.get(field).put(val)
+  return true
 }
-function offerSummaryHtml(rec){
-  let t=sanitizeTag(rec.tag)
-  let cats=sanitizeCats(rec.cats)
-  let cur=sanitizeCurrency(rec.currency)
-  return "<div class=\"rowline\"><span class=\"badge\">"+esc(t)+"</span> offers "+cats2text(cats)+(cur?(" + "+cur+" Racao"):"")+"</div>"
+function watchField(id,k,field,fn){
+  if(!root)return
+  if(!watches[id])watches[id]={}
+  if(watches[id][field])return
+  let node=liveNode(id).get(field)
+  let last=""
+  watches[id][field]=node
+  node.on(async v=>{
+    if(typeof v!=="string"||!v||v===last)return
+    last=v
+    let o=await unlock(k,v)
+    if(o)fn(o)
+  })
 }
-function proposeFormHtml(id){
-  return "<div class=\"rowline\">offer your cats back:</div>"
-    +"<div>"+pickerHtml("proposePick")+"</div>"
-    +"<div class=\"rowline\">Ração to include <input id=\"proposeCurrency\" type=\"number\" min=\"0\" value=\"0\" style=\"width:70px\"></div>"
-    +"<button data-act=\"sendProposal\" data-id=\""+esc(id)+"\">send proposal</button>"
-}
-
-async function showOfferDetail(id){
-  let raw=await storageGet("offer:"+id,true)
-  if(!raw){q("#offerDetail").innerHTML="<div>offer not found or already gone</div>";return}
-  let rec=await unwrapSigned(raw)
-  if(!rec||rec.status!=="open"){q("#offerDetail").innerHTML="<div>this offer is no longer open</div>";return}
-  q("#offerDetail").innerHTML="<hr>"+offerSummaryHtml(rec)+proposeFormHtml(rec.id)+"<hr>"
-}
-
-async function postOffer(){
-  let picks=[...document.querySelectorAll("input[name=offerPick]:checked")].map(i=>i.value)
-  if(!picks.length){q("#postMsg").textContent="pick at least one cat";return}
-  let cur=Math.max(0,Math.min(parseInt(q("#offerCurrency").value)||0,state.currency))
-  let cats=picks.map(h=>state.cats.find(c=>c.hash===h)).filter(Boolean).slice(0,6).map(cleanCat)
-  let id=shortId()
-  let rec={id,tag:state.tag,cats,currency:cur,made:Date.now(),expires:Date.now()+604800000,status:"open"}
-  let ok=await storageSet("offer:"+id,await wrapSigned(rec),true)
-  if(!ok){q("#postMsg").textContent="could not post offer";return}
-  state.myOffers.push(id)
-  await saveProfile()
-  q("#postMsg").textContent="posted, link "+base()+"#trade="+id
-  refreshTrade()
-}
-
-async function sendProposal(id){
-  let existing=await storageGet("reply:"+id,true)
-  if(existing){msg("someone already proposed on this offer");return}
-  let picks=[...document.querySelectorAll("input[name=proposePick]:checked")].map(i=>i.value)
-  if(!picks.length){msg("pick at least one cat to offer");return}
-  let cur=Math.max(0,Math.min(parseInt(q("#proposeCurrency").value)||0,state.currency))
-  let cats=picks.map(h=>state.cats.find(c=>c.hash===h)).filter(Boolean).slice(0,6).map(cleanCat)
-  let rec={id,tag:state.tag,cats,currency:cur,made:Date.now()}
-  let ok=await storageSet("reply:"+id,await wrapSigned(rec),true)
-  if(!ok){msg("could not send proposal");return}
-  let offerRaw=await storageGet("offer:"+id,true)
-  if(offerRaw){
-    let offerRec=await unwrapSigned(offerRaw)
-    if(offerRec){offerRec.status="pending";await storageSet("offer:"+id,await wrapSigned(offerRec),true)}
-  }
-  state.myProposals.push({offerId:id,cats,currency:cur})
-  await saveProfile()
-  q("#offerDetail").innerHTML="<div>proposal sent</div>"
-  msg("proposal sent")
-  refreshTrade()
-}
-
-async function cancelOwnOffer(id){
-  await storageDelete("offer:"+id,true)
-  await storageDelete("reply:"+id,true)
-  state.myOffers=state.myOffers.filter(x=>x!==id)
-  await saveProfile()
-  msg("offer cancelled")
-  refreshTrade()
-}
-
-async function acceptOfferReply(id){
-  let offerRaw=await storageGet("offer:"+id,true)
-  let replyRaw=await storageGet("reply:"+id,true)
-  if(!offerRaw||!replyRaw){msg("nothing to accept");return}
-  let offerRec=await unwrapSigned(offerRaw)
-  let replyRec=await unwrapSigned(replyRaw)
-  if(!offerRec||!replyRec){msg("bad trade data");return}
-  let myCats=sanitizeCats(offerRec.cats)
-  let myCur=sanitizeCurrency(offerRec.currency)
-  let theirCats=sanitizeCats(replyRec.cats)
-  let theirCur=sanitizeCurrency(replyRec.currency)
-  for(let c of myCats)removeCat(c.hash)
-  state.currency=Math.max(0,state.currency-myCur)
-  for(let c of theirCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
-  state.currency+=theirCur
-  state.myOffers=state.myOffers.filter(x=>x!==id)
-  let finalRec={id,ownerTag:state.tag,ownerCats:myCats,ownerCurrency:myCur,replierTag:sanitizeTag(replyRec.tag),status:"ready"}
-  await storageSet("final:"+id,await wrapSigned(finalRec),true)
-  await storageDelete("offer:"+id,true)
-  await storageDelete("reply:"+id,true)
-  await saveProfile()
-  msg("trade accepted")
-  refreshTrade()
-  render()
-}
-
-async function declineOfferReply(id){
-  await storageDelete("reply:"+id,true)
-  let offerRaw=await storageGet("offer:"+id,true)
-  if(offerRaw){
-    let offerRec=await unwrapSigned(offerRaw)
-    if(offerRec){offerRec.status="open";await storageSet("offer:"+id,await wrapSigned(offerRec),true)}
-  }
-  msg("proposal declined")
-  refreshTrade()
-}
-
-async function claimFinal(offerId){
-  let raw=await storageGet("final:"+offerId,true)
-  if(!raw){msg("nothing to claim");return}
-  let rec=await unwrapSigned(raw)
-  if(!rec||rec.status!=="ready"||sanitizeTag(rec.replierTag)!==sanitizeTag(state.tag)){msg("cannot claim this");return}
-  let prop=state.myProposals.find(p=>p.offerId===offerId)
-  if(prop){
-    for(let c of sanitizeCats(prop.cats))removeCat(c.hash)
-    state.currency=Math.max(0,state.currency-sanitizeCurrency(prop.currency))
-  }
-  let ownerCats=sanitizeCats(rec.ownerCats)
-  let ownerCur=sanitizeCurrency(rec.ownerCurrency)
-  for(let c of ownerCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
-  state.currency+=ownerCur
-  state.myProposals=state.myProposals.filter(p=>p.offerId!==offerId)
-  await storageDelete("final:"+offerId,true)
-  await saveProfile()
-  msg("trade claimed")
-  refreshTrade()
-  render()
-}
-
-async function loadMyOffers(){
-  let out=[]
-  for(let id of state.myOffers){
-    let offerRaw=await storageGet("offer:"+id,true)
-    let replyRaw=await storageGet("reply:"+id,true)
-    let offerRec=offerRaw?await unwrapSigned(offerRaw):null
-    let replyRec=replyRaw?await unwrapSigned(replyRaw):null
-    out.push({id,offer:offerRec,reply:replyRec})
-  }
-  renderMyOffers(out)
-}
-function renderMyOffers(list){
-  if(!list.length){q("#myOffersList").innerHTML="none";return}
-  q("#myOffersList").innerHTML=list.map(x=>{
-    if(!x.offer)return "<div class=\"rowline\">offer "+esc(x.id)+" is gone</div>"
-    let base=offerSummaryHtml(x.offer)
-    if(x.reply){
-      let r=x.reply
-      return "<div class=\"rowline\">"+base+"proposal from <span class=\"badge\">"+esc(sanitizeTag(r.tag))+"</span> "+cats2text(sanitizeCats(r.cats))+(sanitizeCurrency(r.currency)?(" + "+sanitizeCurrency(r.currency)+" Racao"):"")
-        +" <span class=\"smalllink\" data-act=\"acceptReply\" data-id=\""+esc(x.id)+"\">accept</span>"
-        +" <span class=\"smalllink\" data-act=\"declineReply\" data-id=\""+esc(x.id)+"\">decline</span></div>"
+function startWatch(id,k){
+  if(!root)return
+  watchField(id,k,"offer",o=>{if(room&&room.id===id){room.offer=o;renderRoom()}})
+  watchField(id,k,"join",o=>{
+    let mine=state.createdTrades.some(t=>t.id===id)
+    if(mine&&o.sid!==state.sid){
+      let tr=state.createdTrades.find(t=>t.id===id)
+      if(tr)tr.status="joined"
+      saveProfile()
+      openRoom(id,k,false)
+      tmsg(o.username+" joined")
     }
-    return "<div class=\"rowline\">"+base+"waiting for a proposal "
-      +"<span class=\"smalllink\" data-act=\"cancelOffer\" data-id=\""+esc(x.id)+"\">cancel</span></div>"
-  }).join("<hr>")
+  })
+  watchField(id,k,"proposal",o=>{
+    let mine=state.createdTrades.some(t=>t.id===id)
+    if(mine){
+      let tr=state.createdTrades.find(t=>t.id===id)
+      if(tr){
+        tr.status="proposal"
+        tr.proposalHashes=(o.cats||[]).map(c=>c.hash)
+        tr.proposalCurrency=safeNum(o.currency)
+      }
+      saveProfile()
+      if(room&&room.id===id){room.proposal=o;renderRoom()}else openRoom(id,k,false)
+      tmsg("Proposal")
+    }
+  })
+  watchField(id,k,"accepted",o=>handleAccepted(id,k,o))
+  watchField(id,k,"declined",o=>{
+    if(o.toSid===state.sid||o.toUser===state.username){
+      let tr=state.joinedTrades.find(t=>t.id===id)
+      if(tr)tr.status="declined"
+      saveProfile()
+      if(room&&room.id===id){room.declined=o;renderRoom()}
+      tmsg("Declined")
+    }
+  })
+  watchField(id,k,"cancelled",o=>{
+    let tr=state.createdTrades.find(t=>t.id===id)||state.joinedTrades.find(t=>t.id===id)
+    if(tr)tr.status="cancelled"
+    saveProfile()
+    if(room&&room.id===id){room.cancelled=o;renderRoom()}
+    tmsg("Cancelled")
+  })
 }
-
-async function loadMyProposals(){
-  let out=[]
-  for(let p of state.myProposals){
-    let raw=await storageGet("final:"+p.offerId,true)
-    let rec=raw?await unwrapSigned(raw):null
-    out.push({offerId:p.offerId,ready:!!(rec&&rec.status==="ready"&&sanitizeTag(rec.replierTag)===sanitizeTag(state.tag))})
+async function loadLive(id,k,field){
+  return new Promise(resolve=>{
+    if(!root){resolve(null);return}
+    let done=false
+    let node=liveNode(id).get(field)
+    let timer=setTimeout(()=>{if(!done){done=true;resolve(null)}},1800)
+    node.once(async v=>{
+      if(done)return
+      done=true
+      clearTimeout(timer)
+      if(typeof v!=="string"){resolve(null);return}
+      resolve(await unlock(k,v))
+    })
+  })
+}
+async function shortLink(long){
+  let apis=["https://is.gd/create.php?format=simple&url="+encodeURIComponent(long)]
+  for(let u of apis){
+    try{
+      let r=await fetch(u,{cache:"no-store"})
+      let tx=(await r.text()).trim()
+      if(r.ok&&/^https?:\/\//i.test(tx)&&tx.length<120)return tx
+    }catch(e){}
   }
-  renderMyProposals(out)
+  return long
 }
-function renderMyProposals(list){
-  if(!list.length){q("#myProposalsList").innerHTML="none";return}
-  q("#myProposalsList").innerHTML=list.map(x=>{
-    return "<div class=\"rowline\">proposal on "+esc(x.offerId)+": "+(x.ready?("ready to claim <span class=\"smalllink\" data-act=\"claim\" data-id=\""+esc(x.offerId)+"\">claim</span>"):"waiting")+"</div>"
-  }).join("<hr>")
-}
-
-async function loadBoard(){
-  let keys=await storageList("offer:",true)
-  let out=[]
-  for(let k of keys){
-    let raw=await storageGet(k,true)
-    if(!raw)continue
-    let rec=await unwrapSigned(raw)
-    if(!rec||rec.status!=="open")continue
-    out.push(rec)
+function copyText(x){
+  try{navigator.clipboard.writeText(x)}catch(e){
+    let ta=document.createElement("textarea")
+    ta.value=x
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand("copy")
+    ta.remove()
   }
-  renderBoard(out)
 }
-function renderBoard(list){
-  if(!list.length){q("#boardList").innerHTML="<div>no open trades right now</div>";return}
-  q("#boardList").innerHTML=list.map(rec=>{
-    let mine=sanitizeTag(rec.tag)===sanitizeTag(state.tag)
-    return "<div class=\"rowline\">"+offerSummaryHtml(rec)
-      +(mine?"":" <span class=\"smalllink\" data-act=\"propose\" data-id=\""+esc(rec.id)+"\">propose trade</span>")
-      +" <span class=\"smalllink\" data-act=\"link\" data-id=\""+esc(rec.id)+"\">copy link</span></div>"
-  }).join("<hr>")
+async function createTrade(){
+  if(!root){tmsg("Live failed");return}
+  let picks=selected("offerPick")
+  if(!picks.length){tmsg("Pick a cat");return}
+  let cats=picks.map(findCat).filter(Boolean).slice(0,12).map(copyCat)
+  let cur=capCurrency("offerCurrency")
+  let id=rid(5)
+  let k=newKey()
+  let long=base()+"#t="+id+"."+k
+  let rec={id,k,link:long,short:"",status:"open",made:Date.now(),offerHashes:cats.map(c=>c.hash),offerCurrency:cur,proposalHashes:[],proposalCurrency:0}
+  state.createdTrades.unshift(rec)
+  state.createdTrades=state.createdTrades.slice(0,50)
+  saveProfile()
+  startWatch(id,k)
+  let offer={type:"offer",id,username:state.username,sid:state.sid,cats,currency:cur,t:Date.now()}
+  livePut(id,"offer",await lock(k,offer))
+  room={id,k,offer,proposal:null,cancelled:null,declined:null,accepted:null,visitor:false}
+  renderTrade()
+  tmsg("Making link")
+  let s=await shortLink(long)
+  rec.short=s
+  saveProfile()
+  copyText(s)
+  renderTrade()
+  tmsg("Copied")
 }
-
-async function refreshTrade(){
+function catsByHashes(hashes){
+  return(hashes||[]).map(findCat).filter(Boolean)
+}
+function renderTrade(){
   q("#offerPicker").innerHTML=pickerHtml("offerPick")
-  q("#myOffersList").innerHTML="loading..."
-  q("#myProposalsList").innerHTML="loading..."
-  q("#boardList").innerHTML="loading..."
-  await loadMyOffers()
-  await loadMyProposals()
-  await loadBoard()
+  renderMyLinks()
+  renderJoinedLinks()
+  if(room)renderRoom()
 }
-
-function goPage(name){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"))
-  document.querySelectorAll(".nav span").forEach(s=>s.classList.remove("on"))
-  q("#page-"+name).classList.add("on")
-  let navItem=document.querySelector(".nav span[data-page=\""+name+"\"]")
-  if(navItem)navItem.classList.add("on")
-  if(name==="trade")refreshTrade()
+function renderMyLinks(){
+  if(!state.createdTrades.length){q("#myLinks").innerHTML="None";return}
+  q("#myLinks").innerHTML=state.createdTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><input class=\"full\" readonly value=\""+esc(t.short||t.link)+"\"><br><span class=\"link\" data-act=\"copyTrade\" data-id=\""+esc(t.id)+"\">copy</span> · <span class=\"link\" data-act=\"openTrade\" data-id=\""+esc(t.id)+"\">open</span> · <span class=\"link\" data-act=\"cancelTrade\" data-id=\""+esc(t.id)+"\">cancel</span><br><span class=\"tiny\">"+safeNum(t.offerCurrency)+" Ração</span></div>").join("")
 }
-document.querySelectorAll(".nav span").forEach(s=>{
-  s.onclick=()=>goPage(s.dataset.page)
-})
-
-function enterApp(){
-  q(".nav").style.display="block"
-  goPage("home")
-  render()
+function renderJoinedLinks(){
+  if(!state.joinedTrades.length){q("#joinedLinks").innerHTML="None";return}
+  q("#joinedLinks").innerHTML=state.joinedTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><span class=\"link\" data-act=\"openJoined\" data-id=\""+esc(t.id)+"\">open</span><br><span class=\"tiny\">"+safeNum(t.proposalCurrency)+" Ração</span></div>").join("")
 }
-
-async function readHash(){
+async function openFromHash(){
   let h=location.hash.slice(1)
   if(!h)return
-  let i=h.indexOf("=")
-  if(i<0)return
-  let type=h.slice(0,i),id=h.slice(i+1)
-  if(type!=="trade")return
+  let s=""
+  if(h.indexOf("t=")===0)s=h.slice(2)
+  if(h.indexOf("trade=")===0)s=h.slice(6)
+  if(!s||s.indexOf(".")<0)return
+  let p=s.split(".")
+  let id=p[0].replace(/[^a-zA-Z0-9]/g,"").slice(0,12)
+  let k=p[1].replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40)
+  if(id&&k)await openRoom(id,k,true)
+}
+async function openRoom(id,k,sendJoin){
+  if(!root){tmsg("Live failed");return}
+  startWatch(id,k)
+  room={id,k,offer:null,proposal:null,cancelled:null,declined:null,accepted:null,visitor:sendJoin}
   goPage("trade")
-  await refreshTrade()
-  await showOfferDetail(id)
+  q("#liveRoom").innerHTML="<h2>Room</h2><div class=\"box\">Loading</div>"
+  let offer=await loadLive(id,k,"offer")
+  if(offer)room.offer=offer
+  let proposal=await loadLive(id,k,"proposal")
+  if(proposal)room.proposal=proposal
+  let accepted=await loadLive(id,k,"accepted")
+  if(accepted)room.accepted=accepted
+  let cancelled=await loadLive(id,k,"cancelled")
+  if(cancelled)room.cancelled=cancelled
+  if(sendJoin){
+    let exists=state.joinedTrades.some(t=>t.id===id)
+    if(!exists&&!state.createdTrades.some(t=>t.id===id)){
+      state.joinedTrades.unshift({id,k,link:base()+"#t="+id+"."+k,short:"",status:"viewing",made:Date.now(),offerHashes:[],offerCurrency:0,proposalHashes:[],proposalCurrency:0})
+      state.joinedTrades=state.joinedTrades.slice(0,50)
+      saveProfile()
+    }
+    livePut(id,"join",await lock(k,{type:"join",id,username:state.username,sid:state.sid,t:Date.now(),n:rid(4)}))
+  }
+  renderRoom()
+  renderTrade()
 }
-window.addEventListener("hashchange",readHash)
-
-q("#setTag").onclick=async()=>{
-  let t=q("#tagInput").value.toUpperCase().replace(/[^A-Z]/g,"")
-  if(t.length!==3){q("#gateMsg").textContent="needs exactly 3 letters";return}
-  q("#setTag").disabled=true
-  let ok=await claimTag(t)
-  if(!ok){q("#gateMsg").textContent="that tag is taken, try another";q("#setTag").disabled=false;return}
-  state.tag=t
-  await saveProfile()
-  q("#gateMsg").textContent=""
-  enterApp()
-  readHash()
+function isCreator(){
+  return room&&state.createdTrades.some(t=>t.id===room.id)
 }
-q("#grab").onclick=grab
-q("#deleteAll").onclick=async()=>{
-  let x=prompt("type DELETE ALL to erase every cat, streak, and save data")
-  if(x==="DELETE ALL"){
-    let oldTag=state.tag
-    state=freshState()
-    state.tag=oldTag
-    await saveProfile()
-    render()
-    msg("everything deleted")
+function isMineOffer(){
+  return room&&room.offer&&room.offer.sid===state.sid
+}
+function currencyInput(id,val){
+  return"<input id=\""+esc(id)+"\" type=\"number\" min=\"0\" value=\""+safeNum(val)+"\" style=\"width:70px\"> <span class=\"link\" data-act=\"maxCurrency\" data-target=\""+esc(id)+"\">max</span>"
+}
+function renderRoom(){
+  if(!room){q("#liveRoom").innerHTML="";return}
+  let h="<h2>Room "+esc(room.id)+"</h2>"
+  if(room.cancelled)h+="<div class=\"box\">Cancelled</div>"
+  if(room.declined)h+="<div class=\"box\">Declined</div>"
+  if(room.accepted)h+="<div class=\"box\">Accepted</div>"
+  if(!room.offer)h+="<div class=\"box\">No offer</div>"
+  else h+="<table><tr><td>From</td><td>"+esc(room.offer.username)+"</td></tr><tr><td>Gives</td><td>"+catsText(room.offer.cats)+"</td></tr><tr><td>Ração</td><td>"+safeNum(room.offer.currency)+"</td></tr></table>"
+  if(room.offer&&!isMineOffer()&&!room.accepted&&!room.cancelled){
+    h+="<div class=\"box\"><b>Your offer</b><div id=\"replyPicker\">"+pickerHtml("replyPick")+"</div><div class=\"row\">Ração "+currencyInput("replyCurrency",0)+"</div><button data-act=\"sendProposal\">Send</button></div>"
+  }
+  if(room.proposal){
+    h+="<h2>Proposal</h2><table><tr><td>From</td><td>"+esc(room.proposal.username)+"</td></tr><tr><td>Gives</td><td>"+catsText(room.proposal.cats)+"</td></tr><tr><td>Ração</td><td>"+safeNum(room.proposal.currency)+"</td></tr></table>"
+    if(isCreator()&&!room.accepted&&!room.cancelled)h+="<button data-act=\"acceptProposal\">Accept</button><button data-act=\"declineProposal\">No</button>"
+  }
+  q("#liveRoom").innerHTML=h
+}
+async function sendProposal(){
+  if(!room||!room.offer){tmsg("No room");return}
+  let picks=selected("replyPick")
+  if(!picks.length){tmsg("Pick a cat");return}
+  let cats=picks.map(findCat).filter(Boolean).slice(0,12).map(copyCat)
+  let cur=capCurrency("replyCurrency")
+  let prop={type:"proposal",id:room.id,username:state.username,sid:state.sid,cats,currency:cur,t:Date.now()}
+  livePut(room.id,"proposal",await lock(room.k,prop))
+  let tr=state.joinedTrades.find(t=>t.id===room.id)
+  if(!tr){
+    tr={id:room.id,k:room.k,link:base()+"#t="+room.id+"."+room.k,short:"",status:"waiting",made:Date.now(),offerHashes:[],offerCurrency:0,proposalHashes:[],proposalCurrency:0}
+    state.joinedTrades.unshift(tr)
+  }
+  tr.status="waiting"
+  tr.proposalHashes=cats.map(c=>c.hash)
+  tr.proposalCurrency=cur
+  saveProfile()
+  room.proposal=prop
+  renderRoom()
+  renderJoinedLinks()
+  tmsg("Sent")
+}
+async function acceptProposal(){
+  if(!room||!room.offer||!room.proposal){tmsg("No proposal");return}
+  if(!isCreator()){tmsg("Not yours");return}
+  let tag="creator:"+room.id
+  if(state.doneTrades.includes(tag)){tmsg("Done");return}
+  let offerCats=(room.offer.cats||[]).map(cleanCat)
+  let propCats=(room.proposal.cats||[]).map(cleanCat)
+  let offerCurrency=safeNum(room.offer.currency)
+  let propCurrency=safeNum(room.proposal.currency)
+  if(offerCats.some(c=>!findCat(c.hash))||state.racao<offerCurrency){tmsg("Missing item");return}
+  for(let c of offerCats)removeCat(c.hash)
+  state.racao=Math.max(0,state.racao-offerCurrency)
+  for(let c of propCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
+  state.racao+=propCurrency
+  state.doneTrades.push(tag)
+  let tr=state.createdTrades.find(t=>t.id===room.id)
+  if(tr)tr.status="accepted"
+  let acc={type:"accepted",id:room.id,fromUser:state.username,fromSid:state.sid,toUser:room.proposal.username,toSid:room.proposal.sid,ownerCats:offerCats,ownerCurrency:offerCurrency,replyCats:propCats,replyCurrency:propCurrency,t:Date.now()}
+  room.accepted=acc
+  livePut(room.id,"accepted",await lock(room.k,acc))
+  saveProfile()
+  render()
+  renderRoom()
+  tmsg("Accepted")
+}
+async function declineProposal(){
+  if(!room||!room.proposal)return
+  let dec={type:"declined",id:room.id,fromUser:state.username,fromSid:state.sid,toUser:room.proposal.username,toSid:room.proposal.sid,t:Date.now()}
+  livePut(room.id,"declined",await lock(room.k,dec))
+  let tr=state.createdTrades.find(t=>t.id===room.id)
+  if(tr)tr.status="open"
+  room.proposal=null
+  saveProfile()
+  renderTrade()
+  tmsg("Declined")
+}
+async function cancelTrade(id){
+  let t=state.createdTrades.find(x=>x.id===id)
+  if(!t)return
+  if(!confirm("Cancel?"))return
+  livePut(id,"cancelled",await lock(t.k,{type:"cancelled",id,username:state.username,sid:state.sid,t:Date.now()}))
+  t.status="cancelled"
+  saveProfile()
+  renderTrade()
+  tmsg("Cancelled")
+}
+function handleAccepted(id,k,acc){
+  if(!acc)return
+  if(room&&room.id===id){room.accepted=acc;renderRoom()}
+  if(acc.toSid!==state.sid&&acc.toUser!==state.username)return
+  let tag="reply:"+id
+  if(state.doneTrades.includes(tag))return
+  let prop=state.joinedTrades.find(t=>t.id===id)
+  let replyCats=(acc.replyCats||[]).map(cleanCat)
+  let ownerCats=(acc.ownerCats||[]).map(cleanCat)
+  for(let c of replyCats)removeCat(c.hash)
+  state.racao=Math.max(0,state.racao-safeNum(acc.replyCurrency))
+  for(let c of ownerCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
+  state.racao+=safeNum(acc.ownerCurrency)
+  state.doneTrades.push(tag)
+  if(prop)prop.status="accepted"
+  saveProfile()
+  render()
+  tmsg("Claimed")
+}
+function bootWatches(){
+  if(!root)return
+  for(let t of state.createdTrades.concat(state.joinedTrades)){
+    if(t.id&&t.k&&t.status!=="cancelled"&&t.status!=="accepted")startWatch(t.id,t.k)
   }
 }
-q("#postOffer").onclick=postOffer
+function goPage(name){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"))
+  q("#"+name).classList.add("on")
+  if(name==="trade")renderTrade()
+}
+function enterApp(){
+  q("#gate").classList.remove("on")
+  q("#app").style.display="block"
+  goPage("home")
+  render()
+  bootWatches()
+}
+q("#nameInput").oninput=()=>{q("#nameInput").value=cleanUser(q("#nameInput").value)}
+q("#setName").onclick=()=>{
+  let n=cleanUser(q("#nameInput").value)
+  if(n.length<3){q("#gateMsg").textContent="3 letters";return}
+  state.username=n
+  saveProfile()
+  q("#gateMsg").textContent=""
+  enterApp()
+  openFromHash()
+}
+q("#grab").onclick=grab
+q("#makeTrade").onclick=createTrade
+q("#deleteAll").onclick=()=>{
+  let x=prompt("Type RESET")
+  if(x==="RESET"){
+    let u=state.username,sid=state.sid
+    state=freshState()
+    state.username=u
+    state.sid=sid
+    saveProfile()
+    render()
+    msg("Reset")
+  }
+}
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>goPage(b.dataset.page))
 document.body.addEventListener("click",e=>{
   let b=e.target.closest("[data-act]")
   if(!b)return
   let id=b.dataset.id
   let act=b.dataset.act
-  if(act==="propose")showOfferDetail(id)
-  if(act==="link"){navigator.clipboard.writeText(base()+"#trade="+id);msg("link copied")}
-  if(act==="sendProposal")sendProposal(id)
-  if(act==="cancelOffer")cancelOwnOffer(id)
-  if(act==="acceptReply")acceptOfferReply(id)
-  if(act==="declineReply")declineOfferReply(id)
-  if(act==="claim")claimFinal(id)
-  if(act==="refreshBoard")refreshTrade()
   if(act==="delete"){
-    let h=b.dataset.h
-    if(confirm("delete this cat?")){removeCat(h);saveProfile();render();msg("cat deleted")}
+    if(confirm("Delete?")){
+      removeCat(b.dataset.h)
+      saveProfile()
+      render()
+      msg("Deleted")
+    }
+  }
+  if(act==="copyTrade"){
+    let t=state.createdTrades.find(x=>x.id===id)
+    if(t){copyText(t.short||t.link);tmsg("Copied")}
+  }
+  if(act==="openTrade"){
+    let t=state.createdTrades.find(x=>x.id===id)
+    if(t)openRoom(t.id,t.k,false)
+  }
+  if(act==="openJoined"){
+    let t=state.joinedTrades.find(x=>x.id===id)
+    if(t)openRoom(t.id,t.k,false)
+  }
+  if(act==="cancelTrade")cancelTrade(id)
+  if(act==="sendProposal")sendProposal()
+  if(act==="acceptProposal")acceptProposal()
+  if(act==="declineProposal")declineProposal()
+  if(act==="maxCurrency"){
+    let x=q("#"+b.dataset.target)
+    if(x)x.value=state.racao
   }
 })
-
+document.body.addEventListener("input",e=>{
+  let x=e.target
+  if(x.id==="offerCurrency"||x.id==="replyCurrency")capCurrency(x.id)
+  if(x.dataset&&x.dataset.act==="rename"){
+    let c=findCat(x.dataset.h)
+    if(c){
+      c.name=cleanCatName(x.value)
+      x.value=c.name
+      saveProfile()
+    }
+  }
+})
+window.addEventListener("hashchange",openFromHash)
 async function init(){
-  let prof=await loadProfile()
-  if(prof&&/^[A-Z]{3}$/.test(prof.tag)){
-    state=Object.assign(freshState(),prof)
+  let s=loadProfile()
+  state=normalizeState(s)
+  if(state.username){
     enterApp()
-    readHash()
+    await openFromHash()
   }else{
-    q(".nav").style.display="none"
-    goPage("gate")
+    q("#app").style.display="none"
+    q("#gate").classList.add("on")
   }
 }
 init()
