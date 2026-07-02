@@ -310,7 +310,7 @@ button:disabled{
 <tr><td>Username</td><td><input id="settingsName" maxlength="3"> <button id="saveName">Save</button></td></tr>
 <tr><td>Rule</td><td>3 letters only. Remote bypassed usernames show as ???.</td></tr>
 <tr><td>Cat names</td><td>Letters only, 7 max.</td></tr>
-<tr><td>Version</td><td>v2.1 same save cookie</td></tr>
+<tr><td>Version</td><td>v2.2 ntfy same save cookie</td></tr>
 </table>
 <div class="box">
 <button id="securityCheck">Recheck security</button>
@@ -330,8 +330,8 @@ const MAXCATS=4
 const WAIT_MS=900000
 const TRADE_MS=600000
 const READY_MS=5000
-const ROOM_API="https://jsonblob.com/api/jsonBlob"
-const POLL_MS=850
+const NTFY="https://ntfy.sh"
+const POLL_MS=1100
 const rarities=[["Common",550000],["Uncommon",250000],["Rare",120000],["Epic",50000],["Legendary",20000],["Mythic",8500],["Mastery",1500]]
 let state=freshState()
 let gun=null
@@ -659,73 +659,85 @@ async function grab(){
 async function apiTimeout(p,ms){
   return Promise.race([p,wait(ms).then(()=>null)])
 }
-async function apiCreateRoom(doc){
-  try{
-    let r=await fetch(ROOM_API,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(doc),cache:"no-store"})
-    if(!r.ok)throw 0
-    let loc=r.headers.get("Location")||""
-    let id=loc.split("/").filter(Boolean).pop()
-    if(!id){
-      let j=await r.json().catch(()=>null)
-      id=String((j&&j.id)||"").split("/").filter(Boolean).pop()
-    }
-    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
-    if(!id)throw 0
-    return id
-  }catch(e){
-    throw new Error("room api failed")
-  }
+function ntfyTopic(id){
+  return String(id||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,64)
 }
-async function apiReadRoom(id){
+function parseNtfyObject(a){
   try{
-    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
-    if(!id)return null
-    let r=await fetch(ROOM_API+"/"+encodeURIComponent(id),{cache:"no-store",headers:{"Accept":"application/json"}})
-    if(!r.ok)return null
-    let j=await r.json()
-    if(!j||typeof j!=="object")return null
-    if(!j.fields||typeof j.fields!=="object")j.fields={}
-    return j
+    if(!a||a.event&&a.event!=="message")return null
+    let m=a.message
+    if(!m)return null
+    let o=typeof m==="string"?JSON.parse(m):m
+    if(!o||o.app!==APP||!o.f||typeof o.p!=="string")return null
+    o.ntfy=String(a.id||a.time||o.n||rid(4))
+    return o
   }catch(e){return null}
 }
-async function apiWriteRoom(id,doc){
-  try{
-    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
-    if(!id)return false
-    let r=await fetch(ROOM_API+"/"+encodeURIComponent(id),{method:"PUT",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(doc),cache:"no-store"})
-    return r.ok
-  }catch(e){return false}
+function parseNtfyLine(line){
+  try{return parseNtfyObject(JSON.parse(line))}catch(e){return null}
 }
-async function readSnapshot(id,k,timeout=2200){
-  let doc=await apiTimeout(apiReadRoom(id),timeout)
+async function ntfyPublish(id,o){
+  id=ntfyTopic(id)
+  if(!id)return false
+  let body=JSON.stringify(o)
+  for(let i=0;i<3;i++){
+    try{
+      let r=await fetch(NTFY+"/"+encodeURIComponent(id),{method:"POST",body,cache:"no-store"})
+      if(r.ok)return true
+    }catch(e){}
+    await wait(250+i*350)
+  }
+  return false
+}
+async function ntfyPoll(id,since){
+  try{
+    id=ntfyTopic(id)
+    if(!id)return[]
+    let r=await fetch(NTFY+"/"+encodeURIComponent(id)+"/json?poll=1&since="+encodeURIComponent(since||"all"),{cache:"no-store"})
+    if(!r.ok)return[]
+    let tx=await r.text()
+    return tx.split(/\n+/).map(parseNtfyLine).filter(Boolean)
+  }catch(e){return[]}
+}
+async function applyNtfyMessage(id,k,m){
+  let w=watches[id]
+  if(w&&m.ntfy){
+    if(w.seen[m.ntfy])return
+    w.seen[m.ntfy]=1
+    w.since=m.ntfy
+  }
+  if(w&&w.fields&&w.fields[m.f]===m.p)return
+  if(w&&w.fields)w.fields[m.f]=m.p
+  let o=await unlock(k,m.p)
+  if(!o)return
+  if(room&&room.id===id){
+    room[m.f]=sanitizeField(m.f,o)
+    if(m.f==="meta"&&room.meta&&room.meta.guestSid&&room.view==="waiting")room.view="room"
+    renderRoom()
+  }
+  if(m.f==="meta")handleMetaSeen(id,k,o)
+  if(m.f==="accepted")handleAccepted(id,k,o)
+  if(m.f==="cancelled")handleCancelled(id,k,o)
+}
+async function readSnapshot(id,k,timeout=2500){
+  let arr=await apiTimeout(ntfyPoll(id,"all"),timeout)||[]
+  let fields={}
+  for(let m of arr)fields[m.f]=m.p
   let out={}
-  if(!doc||!doc.fields)return out
   for(let f of ["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"]){
-    if(typeof doc.fields[f]==="string")out[f]=await unlock(k,doc.fields[f])
+    if(typeof fields[f]==="string")out[f]=await unlock(k,fields[f])
   }
   return out
 }
 async function pollRoom(id,k){
-  let doc=await apiReadRoom(id)
-  if(!doc||!doc.fields||!watches[id])return
-  for(let field of ["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"]){
-    let v=doc.fields[field]
-    if(typeof v!=="string"||watches[id][field]===v)continue
-    watches[id][field]=v
-    let o=await unlock(k,v)
-    if(!o)continue
-    if(room&&room.id===id){
-      room[field]=sanitizeField(field,o)
-      if(field==="meta"&&room.meta&&room.meta.guestSid&&room.view==="waiting")room.view="room"
-      renderRoom()
-    }
-    if(field==="meta")handleMetaSeen(id,k,o)
-    if(field==="accepted")handleAccepted(id,k,o)
-    if(field==="cancelled")handleCancelled(id,k,o)
-  }
+  let w=watches[id]
+  if(!w)return
+  let arr=await ntfyPoll(id,"all")
+  for(let m of arr)await applyNtfyMessage(id,k,m)
 }
 function stopWatch(id){
   if(watches[id]&&watches[id].timer)clearInterval(watches[id].timer)
+  if(watches[id]&&watches[id].es)try{watches[id].es.close()}catch(e){}
   delete watches[id]
 }
 function liveNode(id){
@@ -741,24 +753,30 @@ function roomKey(id){
 }
 async function putField(id,k,field,val){
   if(!id||!k)return false
-  let doc=await apiReadRoom(id)
-  if(!doc)doc={app:APP,v:3,created:now(),updated:now(),fields:{}}
-  if(!doc.fields||typeof doc.fields!=="object")doc.fields={}
-  doc.app=APP
-  doc.v=3
-  doc.updated=now()
-  doc.fields[field]=await lock(k,val)
-  return await apiWriteRoom(id,doc)
+  let p=await lock(k,val)
+  let ok=await ntfyPublish(id,{app:APP,v:4,f:field,p,n:now(),s:state.sid})
+  if(ok&&watches[id]){
+    watches[id].fields[field]=p
+  }
+  return ok
 }
 async function readField(id,k,field,timeout=1800){
-  let doc=await apiTimeout(apiReadRoom(id),timeout)
-  if(!doc||!doc.fields||typeof doc.fields[field]!=="string")return null
-  return await unlock(k,doc.fields[field])
+  let snap=await readSnapshot(id,k,timeout)
+  return snap[field]||null
 }
 function watchRoom(id,k){
+  id=ntfyTopic(id)
   if(!id||!k)return
   if(watches[id]&&watches[id].timer)return
-  watches[id]={timer:setInterval(()=>pollRoom(id,k),POLL_MS)}
+  watches[id]={timer:setInterval(()=>pollRoom(id,k),POLL_MS),fields:{},seen:{},since:"all",es:null}
+  try{
+    let es=new EventSource(NTFY+"/"+encodeURIComponent(id)+"/sse?since=all")
+    es.onmessage=e=>{
+      let m=parseNtfyLine(e.data)
+      if(m)applyNtfyMessage(id,k,m)
+    }
+    watches[id].es=es
+  }catch(e){}
   pollRoom(id,k)
 }
 function sanitizeField(field,o){
@@ -835,23 +853,16 @@ async function makeTrade(){
   await checkSecurity(false)
   if(state.security.blocked){tmsg("Trade blocked by security check");return}
   let k=newKey()
-  let temp=rid(10)
-  let meta={type:"meta",id:temp,status:"open",ownerSid:state.sid,ownerName:state.username,guestSid:"",guestName:"",created:now(),expires:now()+WAIT_MS,nonce:rid(5)}
+  let id=ntfyTopic("catday-"+rid(24))
+  let meta={type:"meta",id,status:"open",ownerSid:state.sid,ownerName:state.username,guestSid:"",guestName:"",created:now(),expires:now()+WAIT_MS,nonce:rid(5)}
   let ownerOffer={type:"offer",sid:state.sid,username:state.username,cats:[],currency:0,version:1,t:now()}
   let ownerReady={sid:state.sid,username:state.username,ready:false,version:1,t:now()}
-  let doc={app:APP,v:3,created:now(),updated:now(),fields:{}}
-  doc.fields.meta=await lock(k,meta)
-  doc.fields.ownerOffer=await lock(k,ownerOffer)
-  doc.fields.ownerReady=await lock(k,ownerReady)
   tmsg("Making live room")
-  let id=""
-  try{
-    id=await apiCreateRoom(doc)
-    meta.id=id
-    doc.fields.meta=await lock(k,meta)
-    await apiWriteRoom(id,doc)
-  }catch(e){
-    tmsg("Room API failed. Try again.")
+  let ok1=await putField(id,k,"meta",meta)
+  let ok2=await putField(id,k,"ownerOffer",ownerOffer)
+  let ok3=await putField(id,k,"ownerReady",ownerReady)
+  if(!ok1||!ok2||!ok3){
+    tmsg("Live API failed. Try again.")
     return
   }
   let long=base()+"?t="+encodeURIComponent(id+"."+k)
