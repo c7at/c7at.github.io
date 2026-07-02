@@ -310,7 +310,7 @@ button:disabled{
 <tr><td>Username</td><td><input id="settingsName" maxlength="3"> <button id="saveName">Save</button></td></tr>
 <tr><td>Rule</td><td>3 letters only. Remote bypassed usernames show as ???.</td></tr>
 <tr><td>Cat names</td><td>Letters only, 7 max.</td></tr>
-<tr><td>Version</td><td>v2 reset cookie</td></tr>
+<tr><td>Version</td><td>v2.1 same save cookie</td></tr>
 </table>
 <div class="box">
 <button id="securityCheck">Recheck security</button>
@@ -327,9 +327,11 @@ const td=new TextDecoder()
 const APP="catday-ugly-trade-v2"
 const SAVE="catday_ugly_save_v2"
 const MAXCATS=4
-const WAIT_MS=600000
-const TRADE_MS=420000
+const WAIT_MS=900000
+const TRADE_MS=600000
 const READY_MS=5000
+const ROOM_API="https://jsonblob.com/api/jsonBlob"
+const POLL_MS=850
 const rarities=[["Common",550000],["Uncommon",250000],["Rare",120000],["Epic",50000],["Legendary",20000],["Mythic",8500],["Mastery",1500]]
 let state=freshState()
 let gun=null
@@ -359,7 +361,7 @@ function tmsg(x){q("#tradeMsg").textContent=x}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function now(){return Date.now()}
 function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function base(){return location.href.split("#")[0]}
+function base(){return location.href.split(/[?#]/)[0]}
 function rid(n){let a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",s="";for(let i=0;i<n;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function validUser(x){return /^[a-zA-Z]{3}$/.test(String(x||""))}
 function cleanUser(x){return String(x||"").replace(/[^a-z]/gi,"").slice(0,3).toUpperCase()}
@@ -401,7 +403,7 @@ function cleanCat(c){
 }
 function cleanTradeMini(x){
   return{
-    id:String((x&&x.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    id:String((x&&x.id)||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80),
     k:String((x&&x.k)||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40),
     link:String((x&&x.link)||"").slice(0,500),
     short:String((x&&x.short)||"").slice(0,500),
@@ -428,7 +430,7 @@ function normalizeState(s){
 }
 function cleanHistory(x){
   if(!x||typeof x!=="object")return null
-  return{ id:String(x.id||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12), t:safeNum(x.t), you:String(x.you||"").slice(0,4000), them:String(x.them||"").slice(0,4000), other:safeUser(x.other||"") }
+  return{ id:String(x.id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80), t:safeNum(x.t), you:String(x.you||"").slice(0,4000), them:String(x.them||"").slice(0,4000), other:safeUser(x.other||"") }
 }
 function cleanSecurity(x){
   return{checked:safeNum(x&&x.checked),blocked:!!(x&&x.blocked),reason:String((x&&x.reason)||"unchecked").replace(/[<>"']/g,"").slice(0,80),ipHash:String((x&&x.ipHash)||"").replace(/[^a-f0-9]/gi,"").slice(0,64),deviceHash:String((x&&x.deviceHash)||"").replace(/[^a-f0-9]/gi,"").slice(0,64)}
@@ -596,23 +598,27 @@ function dailyKey(){
   return shaText("daily:"+todayKey()+"|"+(state.security.ipHash||state.security.deviceHash||state.sid))
 }
 async function dailyClaimed(){
-  if(!root)return false
+  if(!root||!root.get)return false
   let k=await dailyKey()
   return new Promise(resolve=>{
     let done=false
     let timer=setTimeout(()=>{if(!done){done=true;resolve(false)}},1600)
-    root.get("daily").get(k).once(v=>{
-      if(done)return
-      done=true
-      clearTimeout(timer)
-      resolve(!!v)
-    })
+    try{
+      root.get("daily").get(k).once(v=>{
+        if(done)return
+        done=true
+        clearTimeout(timer)
+        resolve(!!v)
+      })
+    }catch(e){
+      if(!done){done=true;clearTimeout(timer);resolve(false)}
+    }
   })
 }
 async function putDailyClaim(){
-  if(!root)return
+  if(!root||!root.get)return
   let k=await dailyKey()
-  root.get("daily").get(k).put({t:now(),u:await shaText("sid:"+state.sid)})
+  try{root.get("daily").get(k).put({t:now(),u:await shaText("sid:"+state.sid)})}catch(e){}
 }
 async function grab(){
   await checkSecurity(false)
@@ -650,15 +656,83 @@ async function grab(){
     render()
   }
 }
+async function apiTimeout(p,ms){
+  return Promise.race([p,wait(ms).then(()=>null)])
+}
+async function apiCreateRoom(doc){
+  try{
+    let r=await fetch(ROOM_API,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(doc),cache:"no-store"})
+    if(!r.ok)throw 0
+    let loc=r.headers.get("Location")||""
+    let id=loc.split("/").filter(Boolean).pop()
+    if(!id){
+      let j=await r.json().catch(()=>null)
+      id=String((j&&j.id)||"").split("/").filter(Boolean).pop()
+    }
+    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
+    if(!id)throw 0
+    return id
+  }catch(e){
+    throw new Error("room api failed")
+  }
+}
+async function apiReadRoom(id){
+  try{
+    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
+    if(!id)return null
+    let r=await fetch(ROOM_API+"/"+encodeURIComponent(id),{cache:"no-store",headers:{"Accept":"application/json"}})
+    if(!r.ok)return null
+    let j=await r.json()
+    if(!j||typeof j!=="object")return null
+    if(!j.fields||typeof j.fields!=="object")j.fields={}
+    return j
+  }catch(e){return null}
+}
+async function apiWriteRoom(id,doc){
+  try{
+    id=String(id||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
+    if(!id)return false
+    let r=await fetch(ROOM_API+"/"+encodeURIComponent(id),{method:"PUT",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(doc),cache:"no-store"})
+    return r.ok
+  }catch(e){return false}
+}
+async function readSnapshot(id,k,timeout=2200){
+  let doc=await apiTimeout(apiReadRoom(id),timeout)
+  let out={}
+  if(!doc||!doc.fields)return out
+  for(let f of ["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"]){
+    if(typeof doc.fields[f]==="string")out[f]=await unlock(k,doc.fields[f])
+  }
+  return out
+}
+async function pollRoom(id,k){
+  let doc=await apiReadRoom(id)
+  if(!doc||!doc.fields||!watches[id])return
+  for(let field of ["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"]){
+    let v=doc.fields[field]
+    if(typeof v!=="string"||watches[id][field]===v)continue
+    watches[id][field]=v
+    let o=await unlock(k,v)
+    if(!o)continue
+    if(room&&room.id===id){
+      room[field]=sanitizeField(field,o)
+      if(field==="meta"&&room.meta&&room.meta.guestSid&&room.view==="waiting")room.view="room"
+      renderRoom()
+    }
+    if(field==="meta")handleMetaSeen(id,k,o)
+    if(field==="accepted")handleAccepted(id,k,o)
+    if(field==="cancelled")handleCancelled(id,k,o)
+  }
+}
+function stopWatch(id){
+  if(watches[id]&&watches[id].timer)clearInterval(watches[id].timer)
+  delete watches[id]
+}
 function liveNode(id){
-  if(!root)return null
-  return root.get("rooms").get(id)
+  return null
 }
 async function livePut(id,field,val){
-  let n=liveNode(id)
-  if(!n)return false
-  n.get(field).put(await lock(roomKey(id),val))
-  return true
+  return putField(id,roomKey(id),field,val)
 }
 function roomKey(id){
   if(room&&room.id===id)return room.k
@@ -666,47 +740,26 @@ function roomKey(id){
   return t?t.k:""
 }
 async function putField(id,k,field,val){
-  let n=liveNode(id)
-  if(!n)return false
-  n.get(field).put(await lock(k,val))
-  return true
+  if(!id||!k)return false
+  let doc=await apiReadRoom(id)
+  if(!doc)doc={app:APP,v:3,created:now(),updated:now(),fields:{}}
+  if(!doc.fields||typeof doc.fields!=="object")doc.fields={}
+  doc.app=APP
+  doc.v=3
+  doc.updated=now()
+  doc.fields[field]=await lock(k,val)
+  return await apiWriteRoom(id,doc)
 }
 async function readField(id,k,field,timeout=1800){
-  return new Promise(resolve=>{
-    if(!root){resolve(null);return}
-    let done=false
-    let timer=setTimeout(()=>{if(!done){done=true;resolve(null)}},timeout)
-    liveNode(id).get(field).once(async v=>{
-      if(done)return
-      done=true
-      clearTimeout(timer)
-      if(typeof v!=="string"){resolve(null);return}
-      resolve(await unlock(k,v))
-    })
-  })
+  let doc=await apiTimeout(apiReadRoom(id),timeout)
+  if(!doc||!doc.fields||typeof doc.fields[field]!=="string")return null
+  return await unlock(k,doc.fields[field])
 }
 function watchRoom(id,k){
-  if(!root)return
-  if(!watches[id])watches[id]={}
-  ;["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"].forEach(field=>{
-    if(watches[id][field])return
-    watches[id][field]=true
-    let last=""
-    liveNode(id).get(field).on(async v=>{
-      if(typeof v!=="string"||v===last)return
-      last=v
-      let o=await unlock(k,v)
-      if(!o)return
-      if(room&&room.id===id){
-        room[field]=sanitizeField(field,o)
-        if(field==="meta"&&room.meta&&room.meta.guestSid&&room.view==="waiting")room.view="room"
-        renderRoom()
-      }
-      if(field==="meta")handleMetaSeen(id,k,o)
-      if(field==="accepted")handleAccepted(id,k,o)
-      if(field==="cancelled")handleCancelled(id,k,o)
-    })
-  })
+  if(!id||!k)return
+  if(watches[id]&&watches[id].timer)return
+  watches[id]={timer:setInterval(()=>pollRoom(id,k),POLL_MS)}
+  pollRoom(id,k)
 }
 function sanitizeField(field,o){
   if(field==="meta")return cleanMeta(o)
@@ -719,7 +772,7 @@ function sanitizeField(field,o){
 function cleanMeta(o){
   return{
     type:"meta",
-    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80),
     status:["open","trading","ended","cancelled"].includes(o&&o.status)?o.status:"open",
     ownerSid:String((o&&o.ownerSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
     ownerName:safeUser(o&&o.ownerName),
@@ -747,7 +800,7 @@ function cleanReady(o){
 function cleanAccepted(o){
   return{
     type:"accepted",
-    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9-]/g,"").slice(0,80),
     ownerSid:String((o&&o.ownerSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
     ownerName:safeUser(o&&o.ownerName),
     guestSid:String((o&&o.guestSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
@@ -758,11 +811,14 @@ function cleanAccepted(o){
   }
 }
 async function shortLink(long){
-  try{
-    let r=await fetch("https://is.gd/create.php?format=simple&url="+encodeURIComponent(long),{cache:"no-store"})
-    let tx=(await r.text()).trim()
-    if(r.ok&&/^https?:\/\//i.test(tx)&&tx.length<140)return tx
-  }catch(e){}
+  let apis=["https://tinyurl.com/api-create.php?url=","https://is.gd/create.php?format=simple&url="]
+  for(let api of apis){
+    try{
+      let r=await fetch(api+encodeURIComponent(long),{cache:"no-store"})
+      let tx=(await r.text()).trim()
+      if(r.ok&&/^https?:\/\//i.test(tx)&&tx.length<180)return tx
+    }catch(e){}
+  }
   return long
 }
 function copyText(x){
@@ -778,23 +834,33 @@ function copyText(x){
 async function makeTrade(){
   await checkSecurity(false)
   if(state.security.blocked){tmsg("Trade blocked by security check");return}
-  if(!root){tmsg("Live failed");return}
-  let id=rid(6)
   let k=newKey()
-  let long=base()+"#t="+id+"."+k
+  let temp=rid(10)
+  let meta={type:"meta",id:temp,status:"open",ownerSid:state.sid,ownerName:state.username,guestSid:"",guestName:"",created:now(),expires:now()+WAIT_MS,nonce:rid(5)}
+  let ownerOffer={type:"offer",sid:state.sid,username:state.username,cats:[],currency:0,version:1,t:now()}
+  let ownerReady={sid:state.sid,username:state.username,ready:false,version:1,t:now()}
+  let doc={app:APP,v:3,created:now(),updated:now(),fields:{}}
+  doc.fields.meta=await lock(k,meta)
+  doc.fields.ownerOffer=await lock(k,ownerOffer)
+  doc.fields.ownerReady=await lock(k,ownerReady)
+  tmsg("Making live room")
+  let id=""
+  try{
+    id=await apiCreateRoom(doc)
+    meta.id=id
+    doc.fields.meta=await lock(k,meta)
+    await apiWriteRoom(id,doc)
+  }catch(e){
+    tmsg("Room API failed. Try again.")
+    return
+  }
+  let long=base()+"?t="+encodeURIComponent(id+"."+k)
   let rec={id,k,link:long,short:"",status:"waiting",made:now()}
   state.createdTrades.unshift(rec)
   state.createdTrades=state.createdTrades.slice(0,60)
   saveProfile()
-  room={id,k,meta:null,ownerOffer:null,guestOffer:null,ownerReady:null,guestReady:null,accepted:null,cancelled:null,view:"waiting",message:"Waiting for someone to join the link..."}
-  let meta={type:"meta",id,status:"open",ownerSid:state.sid,ownerName:state.username,guestSid:"",guestName:"",created:now(),expires:now()+WAIT_MS,nonce:rid(5)}
-  let ownerOffer={type:"offer",sid:state.sid,username:state.username,cats:[],currency:0,version:1,t:now()}
+  room={id,k,meta:cleanMeta(meta),ownerOffer:cleanOffer(ownerOffer),guestOffer:null,ownerReady:cleanReady(ownerReady),guestReady:null,accepted:null,cancelled:null,view:"waiting",message:"Waiting for someone to join the link..."}
   watchRoom(id,k)
-  await putField(id,k,"meta",meta)
-  await putField(id,k,"ownerOffer",ownerOffer)
-  await putField(id,k,"ownerReady",{sid:state.sid,username:state.username,ready:false,version:1,t:now()})
-  room.meta=cleanMeta(meta)
-  room.ownerOffer=cleanOffer(ownerOffer)
   goPage("trade")
   renderTrade()
   tmsg("Making short link")
@@ -806,29 +872,33 @@ async function makeTrade(){
   tmsg("Copied trade link")
 }
 async function openFromHash(){
-  let h=location.hash.slice(1)
-  if(!h)return
   let s=""
-  if(h.indexOf("t=")===0)s=h.slice(2)
-  if(h.indexOf("trade=")===0)s=h.slice(6)
+  try{
+    let u=new URL(location.href)
+    s=u.searchParams.get("t")||u.searchParams.get("trade")||""
+  }catch(e){}
+  let h=location.hash.slice(1)
+  if(!s&&h.indexOf("t=")===0)s=h.slice(2)
+  if(!s&&h.indexOf("trade=")===0)s=h.slice(6)
   if(!s||s.indexOf(".")<0)return
+  s=decodeURIComponent(s)
   let p=s.split(".")
-  let id=p[0].replace(/[^a-zA-Z0-9]/g,"").slice(0,12)
+  let id=p[0].replace(/[^a-zA-Z0-9-]/g,"").slice(0,80)
   let k=p[1].replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40)
   if(id&&k)await joinOrOpen(id,k,true)
 }
 async function joinOrOpen(id,k,fromLink){
-  if(!root){tmsg("Live failed");return}
   goPage("trade")
   q("#liveRoom").innerHTML="<div class=\"wait\">Loading trade...</div>"
   watchRoom(id,k)
-  let meta=cleanMeta(await readField(id,k,"meta",2200))
-  let ownerOffer=cleanOffer(await readField(id,k,"ownerOffer",1200))
-  let guestOffer=cleanOffer(await readField(id,k,"guestOffer",900))
-  let ownerReady=cleanReady(await readField(id,k,"ownerReady",900))
-  let guestReady=cleanReady(await readField(id,k,"guestReady",900))
-  let accepted=cleanAccepted(await readField(id,k,"accepted",900))
-  let cancelled=await readField(id,k,"cancelled",900)
+  let snap=await readSnapshot(id,k,2500)
+  let meta=cleanMeta(snap.meta)
+  let ownerOffer=cleanOffer(snap.ownerOffer)
+  let guestOffer=cleanOffer(snap.guestOffer)
+  let ownerReady=cleanReady(snap.ownerReady)
+  let guestReady=cleanReady(snap.guestReady)
+  let accepted=cleanAccepted(snap.accepted)
+  let cancelled=snap.cancelled
   if(accepted&&accepted.id){
     room={id,k,meta,ownerOffer,guestOffer,ownerReady,guestReady,accepted,cancelled:null,view:"ended",message:"Trade ended"}
     addJoinedMini(id,k,"ended")
@@ -879,7 +949,7 @@ function addJoinedMini(id,k,status){
   if(state.createdTrades.some(t=>t.id===id))return
   let t=state.joinedTrades.find(x=>x.id===id)
   if(!t){
-    t={id,k,link:base()+"#t="+id+"."+k,short:"",status,made:now()}
+    t={id,k,link:base()+"?t="+encodeURIComponent(id+"."+k),short:"",status,made:now()}
     state.joinedTrades.unshift(t)
   }else t.status=status
   state.joinedTrades=state.joinedTrades.slice(0,60)
@@ -1155,7 +1225,6 @@ function handleCancelled(id,k,c){
   renderTrade()
 }
 function bootWatches(){
-  if(!root)return
   state.createdTrades.concat(state.joinedTrades).forEach(t=>{
     if(t.id&&t.k&&t.status!=="ended"&&t.status!=="cancelled")watchRoom(t.id,t.k)
   })
@@ -1256,7 +1325,7 @@ document.body.addEventListener("click",e=>{
   }
   if(act==="copyCurrent"){
     let t=state.createdTrades.find(x=>x.id===room.id)||state.joinedTrades.find(x=>x.id===room.id)
-    copyText((t&&t.short)||(t&&t.link)||base()+"#t="+room.id+"."+room.k)
+    copyText((t&&t.short)||(t&&t.link)||base()+"?t="+encodeURIComponent(room.id+"."+room.k))
     tmsg("Copied")
   }
   if(act==="cancelCurrent")cancelCurrent()
