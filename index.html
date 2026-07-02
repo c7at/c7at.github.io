@@ -17,7 +17,7 @@ body{
   justify-content:center;
 }
 .wrap{
-  width:420px;
+  width:720px;
   max-width:100%;
 }
 h1{
@@ -48,12 +48,15 @@ button{
   padding:4px 8px;
   margin:2px;
 }
+button:disabled{
+  color:#777;
+}
 .nav{
   text-align:center;
   margin:8px 0;
 }
 .nav button{
-  width:30%;
+  width:18%;
 }
 .page{
   display:none;
@@ -97,6 +100,8 @@ button{
   border:1px solid #000;
   padding:1px 5px;
   font-size:11px;
+  display:inline-block;
+  margin:1px 0;
 }
 .box{
   border:1px solid #999;
@@ -114,6 +119,73 @@ button{
   color:#777;
   text-decoration:line-through;
 }
+.tradegrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.slots{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:flex-start;
+}
+.slot{
+  width:106px;
+  height:106px;
+  border:4px solid #000;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  overflow:hidden;
+}
+.slot img{
+  max-width:96px;
+  max-height:96px;
+}
+.slot.add{
+  font-size:60px;
+  line-height:90px;
+  cursor:pointer;
+}
+.wait{
+  height:180px;
+  border:1px solid #999;
+  background:#eee;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:10px;
+}
+.pickgrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:6px;
+}
+.pickcard{
+  border:1px solid #999;
+  background:#eee;
+  padding:5px;
+}
+.pickcard img{
+  width:80px;
+  height:80px;
+  object-fit:contain;
+  background:#ddd;
+  border:1px solid #999;
+}
+.ok{
+  background:#dfd;
+}
+.warn{
+  background:#ffd;
+}
+.bad{
+  background:#fdd;
+}
 @keyframes flick{
   0%{opacity:1}
   50%{opacity:.45}
@@ -129,6 +201,22 @@ button{
 .flash{
   animation:flashit .6s steps(3,end);
 }
+@media(max-width:640px){
+  .tradegrid{
+    grid-template-columns:1fr;
+  }
+  .nav button{
+    width:30%;
+  }
+  .slot{
+    width:88px;
+    height:88px;
+  }
+  .slot img{
+    max-width:78px;
+    max-height:78px;
+  }
+}
 </style>
 </head>
 <body>
@@ -138,7 +226,8 @@ button{
 <div id="gate" class="page on">
 <h2>Name</h2>
 <table>
-<tr><td><input id="nameInput" maxlength="12" class="full"></td></tr>
+<tr><td>Username must be exactly 3 letters.</td></tr>
+<tr><td><input id="nameInput" maxlength="3" class="full" autocomplete="off"></td></tr>
 <tr><td><button id="setName">Start</button></td></tr>
 </table>
 <div id="gateMsg" class="row"></div>
@@ -149,6 +238,8 @@ button{
 <button data-page="home">Cat</button>
 <button data-page="cats">Cats</button>
 <button data-page="trade">Trade</button>
+<button data-page="history">History</button>
+<button data-page="settings">Settings</button>
 </div>
 
 <div id="home" class="page">
@@ -160,12 +251,15 @@ button{
 <tr><td>Cats</td><td id="owned">0</td></tr>
 <tr><td>Ração</td><td id="currency">0</td></tr>
 <tr><td>Streak</td><td id="streak">0</td></tr>
+<tr><td>Next grab</td><td id="nextGrab">now</td></tr>
+<tr><td>Security</td><td id="securityLine">checking</td></tr>
 </table>
 <div id="status" class="box">Ready</div>
 </div>
 
 <div id="cats" class="page">
 <h2>Cats</h2>
+<input id="catSearch" class="full" placeholder="search cats">
 <table id="catTable">
 <tr><td>None</td></tr>
 </table>
@@ -175,24 +269,53 @@ button{
 <div id="trade" class="page">
 <h2>Trade</h2>
 <div class="box">
-<div class="row">Offer</div>
-<div id="offerPicker"></div>
-<div class="row">Ração <input id="offerCurrency" type="number" min="0" value="0" style="width:70px"> <span class="link" data-act="maxCurrency" data-target="offerCurrency">max</span></div>
-<button id="makeTrade">Make link</button>
+<button id="makeTrade">Make trade link</button>
+<button id="refreshTrade">Refresh room</button>
 <div id="tradeMsg" class="row"></div>
 </div>
-
 <div id="liveRoom"></div>
-
-<details>
-<summary>Links</summary>
+<details open>
+<summary>Your links</summary>
 <div id="myLinks">None</div>
 </details>
-
 <details>
-<summary>Joined</summary>
+<summary>Joined links</summary>
 <div id="joinedLinks">None</div>
 </details>
+</div>
+
+<div id="picker" class="page">
+<h2>Add cats</h2>
+<div class="box">
+<div id="pickerInfo">Pick cats</div>
+<div class="row">Ração <input id="pickCurrency" type="number" min="0" value="0" style="width:90px"> <span class="link" id="pickMax">max</span></div>
+<input id="pickSearch" class="full" placeholder="search cats">
+</div>
+<div id="pickList" class="pickgrid"></div>
+<div class="box">
+<button id="savePick">Done</button>
+<button id="clearPick">Clear</button>
+<button id="backTrade">Back</button>
+</div>
+</div>
+
+<div id="history" class="page">
+<h2>History</h2>
+<div id="historyBox">None</div>
+</div>
+
+<div id="settings" class="page">
+<h2>Settings</h2>
+<table>
+<tr><td>Username</td><td><input id="settingsName" maxlength="3"> <button id="saveName">Save</button></td></tr>
+<tr><td>Rule</td><td>3 letters only. Remote bypassed usernames show as ???.</td></tr>
+<tr><td>Cat names</td><td>Letters only, 7 max.</td></tr>
+<tr><td>Version</td><td>v2 reset cookie</td></tr>
+</table>
+<div class="box">
+<button id="securityCheck">Recheck security</button>
+<div id="securityDetails">Not checked</div>
+</div>
 </div>
 </div>
 </div>
@@ -201,14 +324,23 @@ button{
 (() => {
 const te=new TextEncoder()
 const td=new TextDecoder()
-const APP="catday-simple-static-v1"
-const SAVE="catday_simple_save_v1"
+const APP="catday-ugly-trade-v2"
+const SAVE="catday_ugly_save_v2"
+const MAXCATS=4
+const WAIT_MS=600000
+const TRADE_MS=420000
+const READY_MS=5000
 const rarities=[["Common",550000],["Uncommon",250000],["Rare",120000],["Epic",50000],["Legendary",20000],["Mythic",8500],["Mastery",1500]]
 let state=freshState()
 let gun=null
 let root=null
-let watches={}
 let room=null
+let watches={}
+let pickSide=""
+let pickHashes=[]
+let pickCurrency=0
+let readyTimers={}
+let clockTimer=null
 try{
   if(window.Gun){
     gun=Gun({peers:["https://gun-manhattan.herokuapp.com/gun","https://gunjs.herokuapp.com/gun","https://relay.peer.ooo/gun"]})
@@ -217,18 +349,24 @@ try{
 }catch(e){}
 
 function freshState(){
-  return{username:"",sid:rid(12),racao:0,cats:[],grabs:[],lastDate:"",todayCat:null,createdTrades:[],joinedTrades:[],doneTrades:[]}
+  return{username:"",sid:rid(16),racao:0,cats:[],grabs:[],lastDate:"",todayCat:null,createdTrades:[],joinedTrades:[],doneTrades:[],history:[],security:{checked:0,blocked:false,reason:"unchecked",ipHash:"",deviceHash:""}}
 }
 function q(x){return document.querySelector(x)}
+function qa(x){return Array.from(document.querySelectorAll(x))}
 function esc(x){return String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function msg(x){q("#status").textContent=x}
 function tmsg(x){q("#tradeMsg").textContent=x}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function now(){return Date.now()}
 function todayKey(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function base(){return location.href.split("#")[0]}
-function cleanUser(x){return String(x||"").replace(/[^a-z]/gi,"").slice(0,12)}
-function cleanCatName(x){return String(x||"").replace(/[\r\n\t]/g," ").replace(/\s+/g," ").slice(0,24)}
 function rid(n){let a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",s="";for(let i=0;i<n;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function validUser(x){return /^[a-zA-Z]{3}$/.test(String(x||""))}
+function cleanUser(x){return String(x||"").replace(/[^a-z]/gi,"").slice(0,3).toUpperCase()}
+function safeUser(x){x=String(x||"");return validUser(x)?x.toUpperCase():"???"}
+function validCatName(x){return /^[a-zA-Z]{0,7}$/.test(String(x||""))}
+function cleanCatName(x){return String(x||"").replace(/[^a-z]/gi,"").slice(0,7)}
+function safeCatName(x){x=String(x||"");return validCatName(x)?x:""}
 function safeNum(n){n=parseInt(n);if(!Number.isFinite(n)||n<0)n=0;return Math.min(n,999999)}
 function bytesTo64(buf){let a=buf instanceof Uint8Array?buf:new Uint8Array(buf),s="";for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode(...a.subarray(i,i+32768));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
 function bytesFrom64(s){s=String(s||"").replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";let b=atob(s),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
@@ -242,7 +380,7 @@ function rarityFromHash(h){let n=parseInt(h.slice(0,12),16)%1000000,total=0;for(
 function setCookie(n,v,days){let d=new Date();d.setTime(d.getTime()+days*86400000);document.cookie=n+"="+encodeURIComponent(v)+";expires="+d.toUTCString()+";path=/;SameSite=Lax"}
 function getCookie(n){let a=document.cookie.split(";");for(let c of a){c=c.trim();if(c.indexOf(n+"=")===0)return decodeURIComponent(c.slice(n.length+1))}return""}
 function delCookie(n){document.cookie=n+"=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax"}
-function saveChunks(name,val){for(let i=0;i<60;i++)delCookie(name+"_"+i);let size=3000,chunks=[];for(let i=0;i<val.length;i+=size)chunks.push(val.slice(i,i+size));setCookie(name+"_count",String(chunks.length),365);for(let i=0;i<chunks.length;i++)setCookie(name+"_"+i,chunks[i],365)}
+function saveChunks(name,val){for(let i=0;i<90;i++)delCookie(name+"_"+i);let size=3000,chunks=[];for(let i=0;i<val.length;i+=size)chunks.push(val.slice(i,i+size));setCookie(name+"_count",String(chunks.length),365);for(let i=0;i<chunks.length;i++)setCookie(name+"_"+i,chunks[i],365)}
 function readChunks(name){let n=parseInt(getCookie(name+"_count"));if(!Number.isFinite(n)||n<1)return"";let s="";for(let i=0;i<n;i++){let p=getCookie(name+"_"+i);if(!p)return"";s+=p}return s}
 function saveLocal(v){try{localStorage.setItem(SAVE,v)}catch(e){}}
 function readLocal(){try{return localStorage.getItem(SAVE)||""}catch(e){return""}}
@@ -253,11 +391,11 @@ function cleanCat(c){
     id:String((c&&c.id)||"").slice(0,100),
     hash:String((c&&c.hash)||"").slice(0,80),
     rarity:rarities.some(r=>r[0]===(c&&c.rarity))?c.rarity:"Common",
-    breed:String((c&&c.breed)||"").slice(0,60),
-    api:String((c&&c.api)||"").slice(0,30),
+    breed:String((c&&c.breed)||"").replace(/[<>"']/g,"").slice(0,60),
+    api:String((c&&c.api)||"").replace(/[<>"']/g,"").slice(0,30),
     url:String((c&&c.url)||"").slice(0,500),
     got:String((c&&c.got)||todayKey()).slice(0,12),
-    name:cleanCatName((c&&c.name)||""),
+    name:safeCatName((c&&c.name)||""),
     trade:!!(c&&c.trade)
   }
 }
@@ -267,28 +405,33 @@ function cleanTradeMini(x){
     k:String((x&&x.k)||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40),
     link:String((x&&x.link)||"").slice(0,500),
     short:String((x&&x.short)||"").slice(0,500),
-    status:String((x&&x.status)||"open").slice(0,30),
-    made:safeNum((x&&x.made)||Date.now()),
-    offerHashes:Array.isArray(x&&x.offerHashes)?x.offerHashes.map(h=>String(h).slice(0,80)).slice(0,12):[],
-    offerCurrency:safeNum(x&&x.offerCurrency),
-    proposalHashes:Array.isArray(x&&x.proposalHashes)?x.proposalHashes.map(h=>String(h).slice(0,80)).slice(0,12):[],
-    proposalCurrency:safeNum(x&&x.proposalCurrency)
+    status:String((x&&x.status)||"open").replace(/[<>"']/g,"").slice(0,30),
+    made:safeNum((x&&x.made)||Date.now())
   }
 }
 function normalizeState(s){
   let n=freshState()
   if(!s||typeof s!=="object")return n
-  n.username=cleanUser(s.username)
-  n.sid=String(s.sid||rid(12)).slice(0,30)
+  n.username=validUser(s.username)?cleanUser(s.username):""
+  n.sid=String(s.sid||rid(16)).replace(/[^a-zA-Z0-9]/g,"").slice(0,32)||rid(16)
   n.racao=safeNum(s.racao)
-  n.cats=Array.isArray(s.cats)?s.cats.map(cleanCat).filter(c=>c.hash).slice(0,120):[]
-  n.grabs=Array.isArray(s.grabs)?s.grabs.map(x=>String(x).slice(0,12)).slice(-120):[]
+  n.cats=Array.isArray(s.cats)?s.cats.map(cleanCat).filter(c=>c.hash&&/^https?:\/\//i.test(c.url)).slice(0,160):[]
+  n.grabs=Array.isArray(s.grabs)?s.grabs.map(x=>String(x).slice(0,12)).slice(-180):[]
   n.lastDate=String(s.lastDate||"").slice(0,12)
   n.todayCat=s.todayCat?cleanCat(s.todayCat):null
-  n.createdTrades=Array.isArray(s.createdTrades)?s.createdTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-50):[]
-  n.joinedTrades=Array.isArray(s.joinedTrades)?s.joinedTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-50):[]
-  n.doneTrades=Array.isArray(s.doneTrades)?s.doneTrades.map(x=>String(x).slice(0,80)).slice(-200):[]
+  n.createdTrades=Array.isArray(s.createdTrades)?s.createdTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-60):[]
+  n.joinedTrades=Array.isArray(s.joinedTrades)?s.joinedTrades.map(cleanTradeMini).filter(x=>x.id&&x.k).slice(-60):[]
+  n.doneTrades=Array.isArray(s.doneTrades)?s.doneTrades.map(x=>String(x).slice(0,80)).slice(-250):[]
+  n.history=Array.isArray(s.history)?s.history.map(cleanHistory).filter(Boolean).slice(-80):[]
+  n.security=cleanSecurity(s.security)
   return n
+}
+function cleanHistory(x){
+  if(!x||typeof x!=="object")return null
+  return{ id:String(x.id||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12), t:safeNum(x.t), you:String(x.you||"").slice(0,4000), them:String(x.them||"").slice(0,4000), other:safeUser(x.other||"") }
+}
+function cleanSecurity(x){
+  return{checked:safeNum(x&&x.checked),blocked:!!(x&&x.blocked),reason:String((x&&x.reason)||"unchecked").replace(/[<>"']/g,"").slice(0,80),ipHash:String((x&&x.ipHash)||"").replace(/[^a-f0-9]/gi,"").slice(0,64),deviceHash:String((x&&x.deviceHash)||"").replace(/[^a-f0-9]/gi,"").slice(0,64)}
 }
 async function hashImage(url,id){
   try{
@@ -303,14 +446,14 @@ async function fact(){
   try{
     let r=await fetch("https://catfact.ninja/fact",{cache:"no-store"})
     let j=await r.json()
-    return j.fact||""
+    return String(j.fact||"").slice(0,100)
   }catch(e){
     return""
   }
 }
 async function makeCat(b){
   let imgHash=await hashImage(b.url,b.id)
-  let h=await shaText("cat-rarity-v4|"+b.id+"|"+b.url.split("?")[0]+"|"+imgHash)
+  let h=await shaText("cat-rarity-v5|"+b.id+"|"+b.url.split("?")[0]+"|"+imgHash)
   return{id:b.id,api:b.api,url:b.url,hash:h,rarity:rarityFromHash(h),breed:b.breed||"",fact:b.fact||"",got:todayKey(),name:"",trade:false}
 }
 async function theCatApi(){
@@ -332,9 +475,10 @@ async function getCat(){
 }
 function addCat(c){
   c=cleanCat(c)
-  if(!c.hash)return false
+  if(!c.hash||!/^https?:\/\//i.test(c.url))return false
   if(state.cats.some(x=>x.hash===c.hash))return false
   state.cats.unshift(c)
+  state.cats=state.cats.slice(0,160)
   return true
 }
 function removeCat(h){
@@ -349,51 +493,133 @@ function streak(){
   while(set.has(todayKey(d))){n++;d.setDate(d.getDate()-1)}
   return n
 }
-function catName(c){return esc(c.name||c.breed||"cat")}
-function catLine(c){
-  return"<tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.breed||"mystery")+" · "+esc(c.hash.slice(0,6))+"</span></td></tr>"
+function catName(c){return esc(safeCatName(c.name)||c.breed||"cat")}
+function offerText(o){
+  if(!o)return"None"
+  let cats=Array.isArray(o.cats)?o.cats.map(cleanCat):[]
+  let names=cats.map(c=>(safeCatName(c.name)||c.breed||c.rarity||"cat")+" "+c.hash.slice(0,6)).join(", ")
+  return (names||"No cats")+" + "+safeNum(o.currency)+" Ração"
 }
 function catMini(c){
+  c=cleanCat(c)
   return"<table><tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.hash.slice(0,6))+"</span></td></tr></table>"
 }
 function catsText(cats){
-  if(!cats||!cats.length)return"None"
+  cats=Array.isArray(cats)?cats.map(cleanCat):[]
+  if(!cats.length)return"None"
   return cats.map(catMini).join("")
 }
-function selected(name){
-  return[...document.querySelectorAll("input[name='"+name+"']:checked")].map(x=>x.value)
+function slotsHtml(side,o,editable){
+  o=o||{cats:[],currency:0}
+  let cats=Array.isArray(o.cats)?o.cats.map(cleanCat).slice(0,MAXCATS):[]
+  let h="<div class=\"slots\">"
+  for(let i=0;i<MAXCATS;i++){
+    let c=cats[i]
+    if(c)h+="<div class=\"slot\" title=\""+esc(safeCatName(c.name)||c.rarity)+"\"><img src=\""+esc(c.url)+"\" alt=\"cat\"></div>"
+    else h+="<div class=\"slot\"></div>"
+  }
+  if(editable)h+="<div class=\"slot add\" data-act=\"openPicker\" data-side=\""+esc(side)+"\">+</div>"
+  h+="</div><div class=\"row\">Ração: "+safeNum(o.currency)+"</div>"
+  return h
 }
-function selectedCats(name){
-  return selected(name).map(findCat).filter(Boolean)
-}
-function pickerHtml(name){
-  if(!state.cats.length)return"<div>None</div>"
-  return"<table>"+state.cats.map(c=>"<tr><td style=\"width:25px\"><input type=\"checkbox\" name=\""+esc(name)+"\" value=\""+esc(c.hash)+"\"></td><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span></td></tr>").join("")+"</table>"
-}
-function capCurrency(id){
-  let x=q("#"+id)
-  if(!x)return 0
-  let v=safeNum(x.value)
-  if(v>state.racao)v=state.racao
-  x.value=v
-  return v
+function collectionRow(c){
+  let term=(q("#catSearch")&&q("#catSearch").value||"").toLowerCase()
+  let text=(c.name+" "+c.rarity+" "+c.breed+" "+c.hash).toLowerCase()
+  if(term&&!text.includes(term))return""
+  return"<tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><input data-act=\"rename\" data-h=\""+esc(c.hash)+"\" value=\""+esc(safeCatName(c.name)||"")+"\" maxlength=\"7\" class=\"full\"><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.breed||"mystery")+" · "+esc(c.got||"")+"</span><br><span class=\"link\" data-act=\"delete\" data-h=\""+esc(c.hash)+"\">delete</span></td></tr>"
 }
 function render(){
   q("#owned").textContent=state.cats.length
   q("#currency").textContent=state.racao
   q("#streak").textContent=streak()
-  q("#grab").disabled=state.lastDate===todayKey()
-  q("#userTag").textContent=state.username?"["+state.username+"]":""
-  q("#catTable").innerHTML=state.cats.length?state.cats.map(collectionRow).join(""):"<tr><td>None</td></tr>"
+  q("#grab").disabled=state.lastDate===todayKey()||state.security.blocked
+  q("#userTag").textContent=state.username?"["+safeUser(state.username)+"]":""
+  q("#settingsName").value=state.username
+  let rows=state.cats.map(collectionRow).filter(Boolean).join("")
+  q("#catTable").innerHTML=rows||"<tr><td>None</td></tr>"
   if(state.todayCat&&state.lastDate===todayKey())q("#today").innerHTML="<img src=\""+esc(state.todayCat.url)+"\" alt=\"cat\">"
   else q("#today").innerHTML="No cat"
+  q("#securityLine").textContent=state.security.blocked?"blocked: "+state.security.reason:state.security.reason
+  q("#securityLine").className=state.security.blocked?"bad":""
+  q("#securityDetails").textContent="Checked: "+(state.security.checked?new Date(state.security.checked).toLocaleString():"never")+" | "+state.security.reason
+  renderHistory()
   if(q("#trade").classList.contains("on"))renderTrade()
 }
-function collectionRow(c){
-  return"<tr><td style=\"width:68px\"><img class=\"catimg\" src=\""+esc(c.url)+"\" alt=\"cat\"></td><td><input data-act=\"rename\" data-h=\""+esc(c.hash)+"\" value=\""+esc(c.name||"")+"\" maxlength=\"24\" class=\"full\"><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.breed||"mystery")+" · "+esc(c.got||"")+"</span><br><span class=\"link\" data-act=\"delete\" data-h=\""+esc(c.hash)+"\">delete</span></td></tr>"
+function nextMidnightMs(){
+  let d=new Date()
+  let n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1,0,0,0,0)
+  return n.getTime()-d.getTime()
+}
+function fmt(ms){
+  ms=Math.max(0,ms)
+  let s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60)
+  s%=60;m%=60
+  return (h?String(h).padStart(2,"0")+":":"")+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")
+}
+function tick(){
+  q("#nextGrab").textContent=state.lastDate===todayKey()?fmt(nextMidnightMs()):"now"
+  if(room)renderRoom(false)
+}
+function goPage(name){
+  qa(".page").forEach(p=>p.classList.remove("on"))
+  q("#"+name).classList.add("on")
+  if(name==="trade")renderTrade()
+  if(name==="picker")renderPicker()
+}
+async function deviceHash(){
+  let s=[navigator.userAgent,navigator.language,screen.width,screen.height,screen.colorDepth,Intl.DateTimeFormat().resolvedOptions().timeZone||"",navigator.hardwareConcurrency||""].join("|")
+  return await shaText("device:"+s)
+}
+async function checkSecurity(force){
+  if(!force&&state.security.checked&&now()-state.security.checked<3600000)return state.security
+  let sec={checked:now(),blocked:false,reason:"basic check ok",ipHash:"",deviceHash:await deviceHash()}
+  try{
+    let r=await fetch("https://ipwho.is/?security=1",{cache:"no-store"})
+    let j=await r.json()
+    if(j&&j.ip)sec.ipHash=await shaText("ip:"+j.ip)
+    let s=j&&j.security?j.security:{}
+    if(s.vpn||s.proxy||s.tor||s.relay){
+      sec.blocked=true
+      sec.reason="vpn/proxy detected"
+    }else{
+      sec.reason="ip check ok"
+    }
+  }catch(e){
+    sec.reason="ip check unavailable"
+  }
+  state.security=sec
+  saveProfile()
+  render()
+  return sec
+}
+function dailyKey(){
+  return shaText("daily:"+todayKey()+"|"+(state.security.ipHash||state.security.deviceHash||state.sid))
+}
+async function dailyClaimed(){
+  if(!root)return false
+  let k=await dailyKey()
+  return new Promise(resolve=>{
+    let done=false
+    let timer=setTimeout(()=>{if(!done){done=true;resolve(false)}},1600)
+    root.get("daily").get(k).once(v=>{
+      if(done)return
+      done=true
+      clearTimeout(timer)
+      resolve(!!v)
+    })
+  })
+}
+async function putDailyClaim(){
+  if(!root)return
+  let k=await dailyKey()
+  root.get("daily").get(k).put({t:now(),u:await shaText("sid:"+state.sid)})
 }
 async function grab(){
+  await checkSecurity(false)
+  if(state.security.blocked){msg("Blocked by security check");return}
   if(state.lastDate===todayKey()){msg("Already grabbed");return}
+  let used=await dailyClaimed()
+  if(used){state.lastDate=todayKey();saveProfile();render();msg("Already grabbed today on this network");return}
   q("#grab").disabled=true
   let box=q("#today")
   box.classList.add("flicker")
@@ -411,6 +637,7 @@ async function grab(){
     if(!state.grabs.includes(todayKey()))state.grabs.push(todayKey())
     addCat(c)
     state.racao+=500
+    await putDailyClaim()
     saveProfile()
     box.classList.add("flash")
     setTimeout(()=>box.classList.remove("flash"),650)
@@ -425,80 +652,31 @@ async function grab(){
 }
 function liveNode(id){
   if(!root)return null
-  return root.get(id)
+  return root.get("rooms").get(id)
 }
-function livePut(id,field,val){
+async function livePut(id,field,val){
   let n=liveNode(id)
   if(!n)return false
-  n.get(field).put(val)
+  n.get(field).put(await lock(roomKey(id),val))
   return true
 }
-function watchField(id,k,field,fn){
-  if(!root)return
-  if(!watches[id])watches[id]={}
-  if(watches[id][field])return
-  let node=liveNode(id).get(field)
-  let last=""
-  watches[id][field]=node
-  node.on(async v=>{
-    if(typeof v!=="string"||!v||v===last)return
-    last=v
-    let o=await unlock(k,v)
-    if(o)fn(o)
-  })
+function roomKey(id){
+  if(room&&room.id===id)return room.k
+  let t=state.createdTrades.find(x=>x.id===id)||state.joinedTrades.find(x=>x.id===id)
+  return t?t.k:""
 }
-function startWatch(id,k){
-  if(!root)return
-  watchField(id,k,"offer",o=>{if(room&&room.id===id){room.offer=o;renderRoom()}})
-  watchField(id,k,"join",o=>{
-    let mine=state.createdTrades.some(t=>t.id===id)
-    if(mine&&o.sid!==state.sid){
-      let tr=state.createdTrades.find(t=>t.id===id)
-      if(tr)tr.status="joined"
-      saveProfile()
-      openRoom(id,k,false)
-      tmsg(o.username+" joined")
-    }
-  })
-  watchField(id,k,"proposal",o=>{
-    let mine=state.createdTrades.some(t=>t.id===id)
-    if(mine){
-      let tr=state.createdTrades.find(t=>t.id===id)
-      if(tr){
-        tr.status="proposal"
-        tr.proposalHashes=(o.cats||[]).map(c=>c.hash)
-        tr.proposalCurrency=safeNum(o.currency)
-      }
-      saveProfile()
-      if(room&&room.id===id){room.proposal=o;renderRoom()}else openRoom(id,k,false)
-      tmsg("Proposal")
-    }
-  })
-  watchField(id,k,"accepted",o=>handleAccepted(id,k,o))
-  watchField(id,k,"declined",o=>{
-    if(o.toSid===state.sid||o.toUser===state.username){
-      let tr=state.joinedTrades.find(t=>t.id===id)
-      if(tr)tr.status="declined"
-      saveProfile()
-      if(room&&room.id===id){room.declined=o;renderRoom()}
-      tmsg("Declined")
-    }
-  })
-  watchField(id,k,"cancelled",o=>{
-    let tr=state.createdTrades.find(t=>t.id===id)||state.joinedTrades.find(t=>t.id===id)
-    if(tr)tr.status="cancelled"
-    saveProfile()
-    if(room&&room.id===id){room.cancelled=o;renderRoom()}
-    tmsg("Cancelled")
-  })
+async function putField(id,k,field,val){
+  let n=liveNode(id)
+  if(!n)return false
+  n.get(field).put(await lock(k,val))
+  return true
 }
-async function loadLive(id,k,field){
+async function readField(id,k,field,timeout=1800){
   return new Promise(resolve=>{
     if(!root){resolve(null);return}
     let done=false
-    let node=liveNode(id).get(field)
-    let timer=setTimeout(()=>{if(!done){done=true;resolve(null)}},1800)
-    node.once(async v=>{
+    let timer=setTimeout(()=>{if(!done){done=true;resolve(null)}},timeout)
+    liveNode(id).get(field).once(async v=>{
       if(done)return
       done=true
       clearTimeout(timer)
@@ -507,15 +685,84 @@ async function loadLive(id,k,field){
     })
   })
 }
-async function shortLink(long){
-  let apis=["https://is.gd/create.php?format=simple&url="+encodeURIComponent(long)]
-  for(let u of apis){
-    try{
-      let r=await fetch(u,{cache:"no-store"})
-      let tx=(await r.text()).trim()
-      if(r.ok&&/^https?:\/\//i.test(tx)&&tx.length<120)return tx
-    }catch(e){}
+function watchRoom(id,k){
+  if(!root)return
+  if(!watches[id])watches[id]={}
+  ;["meta","ownerOffer","guestOffer","ownerReady","guestReady","accepted","cancelled"].forEach(field=>{
+    if(watches[id][field])return
+    watches[id][field]=true
+    let last=""
+    liveNode(id).get(field).on(async v=>{
+      if(typeof v!=="string"||v===last)return
+      last=v
+      let o=await unlock(k,v)
+      if(!o)return
+      if(room&&room.id===id){
+        room[field]=sanitizeField(field,o)
+        if(field==="meta"&&room.meta&&room.meta.guestSid&&room.view==="waiting")room.view="room"
+        renderRoom()
+      }
+      if(field==="meta")handleMetaSeen(id,k,o)
+      if(field==="accepted")handleAccepted(id,k,o)
+      if(field==="cancelled")handleCancelled(id,k,o)
+    })
+  })
+}
+function sanitizeField(field,o){
+  if(field==="meta")return cleanMeta(o)
+  if(field==="ownerOffer"||field==="guestOffer")return cleanOffer(o)
+  if(field==="ownerReady"||field==="guestReady")return cleanReady(o)
+  if(field==="accepted")return cleanAccepted(o)
+  if(field==="cancelled")return{type:"cancelled",id:String(o.id||"").slice(0,12),sid:String(o.sid||"").slice(0,32),username:safeUser(o.username),t:safeNum(o.t)}
+  return o
+}
+function cleanMeta(o){
+  return{
+    type:"meta",
+    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    status:["open","trading","ended","cancelled"].includes(o&&o.status)?o.status:"open",
+    ownerSid:String((o&&o.ownerSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
+    ownerName:safeUser(o&&o.ownerName),
+    guestSid:String((o&&o.guestSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
+    guestName:safeUser(o&&o.guestName),
+    created:safeNum(o&&o.created),
+    expires:safeNum(o&&o.expires),
+    nonce:String((o&&o.nonce)||rid(4)).replace(/[^a-zA-Z0-9]/g,"").slice(0,12)
   }
+}
+function cleanOffer(o){
+  return{
+    type:"offer",
+    sid:String((o&&o.sid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
+    username:safeUser(o&&o.username),
+    cats:Array.isArray(o&&o.cats)?o.cats.map(cleanCat).filter(c=>c.hash).slice(0,MAXCATS):[],
+    currency:safeNum(o&&o.currency),
+    version:safeNum(o&&o.version),
+    t:safeNum(o&&o.t)
+  }
+}
+function cleanReady(o){
+  return{sid:String((o&&o.sid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),username:safeUser(o&&o.username),ready:!!(o&&o.ready),version:safeNum(o&&o.version),t:safeNum(o&&o.t)}
+}
+function cleanAccepted(o){
+  return{
+    type:"accepted",
+    id:String((o&&o.id)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,12),
+    ownerSid:String((o&&o.ownerSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
+    ownerName:safeUser(o&&o.ownerName),
+    guestSid:String((o&&o.guestSid)||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,32),
+    guestName:safeUser(o&&o.guestName),
+    ownerOffer:cleanOffer(o&&o.ownerOffer),
+    guestOffer:cleanOffer(o&&o.guestOffer),
+    t:safeNum(o&&o.t)
+  }
+}
+async function shortLink(long){
+  try{
+    let r=await fetch("https://is.gd/create.php?format=simple&url="+encodeURIComponent(long),{cache:"no-store"})
+    let tx=(await r.text()).trim()
+    if(r.ok&&/^https?:\/\//i.test(tx)&&tx.length<140)return tx
+  }catch(e){}
   return long
 }
 function copyText(x){
@@ -528,48 +775,35 @@ function copyText(x){
     ta.remove()
   }
 }
-async function createTrade(){
+async function makeTrade(){
+  await checkSecurity(false)
+  if(state.security.blocked){tmsg("Trade blocked by security check");return}
   if(!root){tmsg("Live failed");return}
-  let picks=selected("offerPick")
-  if(!picks.length){tmsg("Pick a cat");return}
-  let cats=picks.map(findCat).filter(Boolean).slice(0,12).map(copyCat)
-  let cur=capCurrency("offerCurrency")
-  let id=rid(5)
+  let id=rid(6)
   let k=newKey()
   let long=base()+"#t="+id+"."+k
-  let rec={id,k,link:long,short:"",status:"open",made:Date.now(),offerHashes:cats.map(c=>c.hash),offerCurrency:cur,proposalHashes:[],proposalCurrency:0}
+  let rec={id,k,link:long,short:"",status:"waiting",made:now()}
   state.createdTrades.unshift(rec)
-  state.createdTrades=state.createdTrades.slice(0,50)
+  state.createdTrades=state.createdTrades.slice(0,60)
   saveProfile()
-  startWatch(id,k)
-  let offer={type:"offer",id,username:state.username,sid:state.sid,cats,currency:cur,t:Date.now()}
-  livePut(id,"offer",await lock(k,offer))
-  room={id,k,offer,proposal:null,cancelled:null,declined:null,accepted:null,visitor:false}
+  room={id,k,meta:null,ownerOffer:null,guestOffer:null,ownerReady:null,guestReady:null,accepted:null,cancelled:null,view:"waiting",message:"Waiting for someone to join the link..."}
+  let meta={type:"meta",id,status:"open",ownerSid:state.sid,ownerName:state.username,guestSid:"",guestName:"",created:now(),expires:now()+WAIT_MS,nonce:rid(5)}
+  let ownerOffer={type:"offer",sid:state.sid,username:state.username,cats:[],currency:0,version:1,t:now()}
+  watchRoom(id,k)
+  await putField(id,k,"meta",meta)
+  await putField(id,k,"ownerOffer",ownerOffer)
+  await putField(id,k,"ownerReady",{sid:state.sid,username:state.username,ready:false,version:1,t:now()})
+  room.meta=cleanMeta(meta)
+  room.ownerOffer=cleanOffer(ownerOffer)
+  goPage("trade")
   renderTrade()
-  tmsg("Making link")
+  tmsg("Making short link")
   let s=await shortLink(long)
   rec.short=s
   saveProfile()
   copyText(s)
   renderTrade()
-  tmsg("Copied")
-}
-function catsByHashes(hashes){
-  return(hashes||[]).map(findCat).filter(Boolean)
-}
-function renderTrade(){
-  q("#offerPicker").innerHTML=pickerHtml("offerPick")
-  renderMyLinks()
-  renderJoinedLinks()
-  if(room)renderRoom()
-}
-function renderMyLinks(){
-  if(!state.createdTrades.length){q("#myLinks").innerHTML="None";return}
-  q("#myLinks").innerHTML=state.createdTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><input class=\"full\" readonly value=\""+esc(t.short||t.link)+"\"><br><span class=\"link\" data-act=\"copyTrade\" data-id=\""+esc(t.id)+"\">copy</span> · <span class=\"link\" data-act=\"openTrade\" data-id=\""+esc(t.id)+"\">open</span> · <span class=\"link\" data-act=\"cancelTrade\" data-id=\""+esc(t.id)+"\">cancel</span><br><span class=\"tiny\">"+safeNum(t.offerCurrency)+" Ração</span></div>").join("")
-}
-function renderJoinedLinks(){
-  if(!state.joinedTrades.length){q("#joinedLinks").innerHTML="None";return}
-  q("#joinedLinks").innerHTML=state.joinedTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><span class=\"link\" data-act=\"openJoined\" data-id=\""+esc(t.id)+"\">open</span><br><span class=\"tiny\">"+safeNum(t.proposalCurrency)+" Ração</span></div>").join("")
+  tmsg("Copied trade link")
 }
 async function openFromHash(){
   let h=location.hash.slice(1)
@@ -581,157 +815,354 @@ async function openFromHash(){
   let p=s.split(".")
   let id=p[0].replace(/[^a-zA-Z0-9]/g,"").slice(0,12)
   let k=p[1].replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40)
-  if(id&&k)await openRoom(id,k,true)
+  if(id&&k)await joinOrOpen(id,k,true)
 }
-async function openRoom(id,k,sendJoin){
+async function joinOrOpen(id,k,fromLink){
   if(!root){tmsg("Live failed");return}
-  startWatch(id,k)
-  room={id,k,offer:null,proposal:null,cancelled:null,declined:null,accepted:null,visitor:sendJoin}
   goPage("trade")
-  q("#liveRoom").innerHTML="<h2>Room</h2><div class=\"box\">Loading</div>"
-  let offer=await loadLive(id,k,"offer")
-  if(offer)room.offer=offer
-  let proposal=await loadLive(id,k,"proposal")
-  if(proposal)room.proposal=proposal
-  let accepted=await loadLive(id,k,"accepted")
-  if(accepted)room.accepted=accepted
-  let cancelled=await loadLive(id,k,"cancelled")
-  if(cancelled)room.cancelled=cancelled
-  if(sendJoin){
-    let exists=state.joinedTrades.some(t=>t.id===id)
-    if(!exists&&!state.createdTrades.some(t=>t.id===id)){
-      state.joinedTrades.unshift({id,k,link:base()+"#t="+id+"."+k,short:"",status:"viewing",made:Date.now(),offerHashes:[],offerCurrency:0,proposalHashes:[],proposalCurrency:0})
-      state.joinedTrades=state.joinedTrades.slice(0,50)
-      saveProfile()
-    }
-    livePut(id,"join",await lock(k,{type:"join",id,username:state.username,sid:state.sid,t:Date.now(),n:rid(4)}))
+  q("#liveRoom").innerHTML="<div class=\"wait\">Loading trade...</div>"
+  watchRoom(id,k)
+  let meta=cleanMeta(await readField(id,k,"meta",2200))
+  let ownerOffer=cleanOffer(await readField(id,k,"ownerOffer",1200))
+  let guestOffer=cleanOffer(await readField(id,k,"guestOffer",900))
+  let ownerReady=cleanReady(await readField(id,k,"ownerReady",900))
+  let guestReady=cleanReady(await readField(id,k,"guestReady",900))
+  let accepted=cleanAccepted(await readField(id,k,"accepted",900))
+  let cancelled=await readField(id,k,"cancelled",900)
+  if(accepted&&accepted.id){
+    room={id,k,meta,ownerOffer,guestOffer,ownerReady,guestReady,accepted,cancelled:null,view:"ended",message:"Trade ended"}
+    addJoinedMini(id,k,"ended")
+    renderRoom()
+    return
   }
-  renderRoom()
+  if(cancelled){
+    room={id,k,meta,ownerOffer,guestOffer,ownerReady,guestReady,accepted:null,cancelled,view:"ended",message:"Trade cancelled"}
+    addJoinedMini(id,k,"cancelled")
+    renderRoom()
+    return
+  }
+  if(!meta||!meta.id){
+    q("#liveRoom").innerHTML="<div class=\"box bad\">Trade not found or bad key.</div>"
+    return
+  }
+  if(meta.expires&&now()>meta.expires&&meta.status==="open"){
+    q("#liveRoom").innerHTML="<div class=\"box bad\">This trade link expired.</div>"
+    return
+  }
+  let owner=meta.ownerSid===state.sid
+  let guest=meta.guestSid===state.sid
+  if(!owner&&!guest&&meta.status==="trading"&&meta.guestSid){
+    room={id,k,meta,ownerOffer,guestOffer,ownerReady,guestReady,accepted:null,cancelled:null,view:"busy",message:"They are already in a trade."}
+    renderRoom()
+    return
+  }
+  if(!owner&&!guest&&meta.status==="open"){
+    meta.status="trading"
+    meta.guestSid=state.sid
+    meta.guestName=state.username
+    meta.expires=now()+TRADE_MS
+    meta.nonce=rid(5)
+    await putField(id,k,"meta",meta)
+    let empty={type:"offer",sid:state.sid,username:state.username,cats:[],currency:0,version:1,t:now()}
+    await putField(id,k,"guestOffer",empty)
+    await putField(id,k,"guestReady",{sid:state.sid,username:state.username,ready:false,version:1,t:now()})
+    guestOffer=cleanOffer(empty)
+    guestReady=cleanReady({sid:state.sid,username:state.username,ready:false,version:1,t:now()})
+    addJoinedMini(id,k,"trading")
+  }
+  if(owner)markCreatedStatus(id,meta.status==="open"?"waiting":"trading")
+  if(guest)addJoinedMini(id,k,"trading")
+  room={id,k,meta:cleanMeta(meta),ownerOffer,guestOffer,ownerReady,guestReady,accepted:null,cancelled:null,view:meta.status==="open"&&owner?"waiting":"room",message:""}
   renderTrade()
 }
-function isCreator(){
-  return room&&state.createdTrades.some(t=>t.id===room.id)
+function addJoinedMini(id,k,status){
+  if(state.createdTrades.some(t=>t.id===id))return
+  let t=state.joinedTrades.find(x=>x.id===id)
+  if(!t){
+    t={id,k,link:base()+"#t="+id+"."+k,short:"",status,made:now()}
+    state.joinedTrades.unshift(t)
+  }else t.status=status
+  state.joinedTrades=state.joinedTrades.slice(0,60)
+  saveProfile()
 }
-function isMineOffer(){
-  return room&&room.offer&&room.offer.sid===state.sid
+function markCreatedStatus(id,status){
+  let t=state.createdTrades.find(x=>x.id===id)
+  if(t){t.status=status;saveProfile()}
 }
-function currencyInput(id,val){
-  return"<input id=\""+esc(id)+"\" type=\"number\" min=\"0\" value=\""+safeNum(val)+"\" style=\"width:70px\"> <span class=\"link\" data-act=\"maxCurrency\" data-target=\""+esc(id)+"\">max</span>"
+function renderTrade(){
+  renderMyLinks()
+  renderJoinedLinks()
+  if(room)renderRoom()
 }
-function renderRoom(){
+function renderMyLinks(){
+  if(!state.createdTrades.length){q("#myLinks").innerHTML="None";return}
+  q("#myLinks").innerHTML=state.createdTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><input class=\"full\" readonly value=\""+esc(t.short||t.link)+"\"><br><span class=\"link\" data-act=\"copyTrade\" data-id=\""+esc(t.id)+"\">copy</span> · <span class=\"link\" data-act=\"openTrade\" data-id=\""+esc(t.id)+"\">open</span> · <span class=\"link\" data-act=\"cancelTrade\" data-id=\""+esc(t.id)+"\">cancel</span></div>").join("")
+}
+function renderJoinedLinks(){
+  if(!state.joinedTrades.length){q("#joinedLinks").innerHTML="None";return}
+  q("#joinedLinks").innerHTML=state.joinedTrades.map(t=>"<div class=\"box\"><span class=\"badge\">"+esc(t.status)+"</span> "+esc(t.id)+"<br><input class=\"full\" readonly value=\""+esc(t.short||t.link)+"\"><br><span class=\"link\" data-act=\"openJoined\" data-id=\""+esc(t.id)+"\">open</span></div>").join("")
+}
+function sideOfMe(){
+  if(!room||!room.meta)return""
+  if(room.meta.ownerSid===state.sid)return"owner"
+  if(room.meta.guestSid===state.sid)return"guest"
+  return""
+}
+function sideOffer(side){
+  return side==="owner"?room.ownerOffer:room.guestOffer
+}
+function sideReady(side){
+  return side==="owner"?room.ownerReady:room.guestReady
+}
+function otherSide(side){
+  return side==="owner"?"guest":"owner"
+}
+function canEdit(side){
+  return side&&side===sideOfMe()&&!room.accepted&&!room.cancelled&&room.view==="room"&&!(sideReady(side)&&sideReady(side).ready)
+}
+function readyValid(side){
+  let o=sideOffer(side),r=sideReady(side)
+  return !!(o&&r&&r.ready&&r.version===o.version)
+}
+function expiredRoom(){
+  return room&&room.meta&&room.meta.expires&&now()>room.meta.expires&&!room.accepted
+}
+function renderRoom(heavy=true){
   if(!room){q("#liveRoom").innerHTML="";return}
-  let h="<h2>Room "+esc(room.id)+"</h2>"
-  if(room.cancelled)h+="<div class=\"box\">Cancelled</div>"
-  if(room.declined)h+="<div class=\"box\">Declined</div>"
-  if(room.accepted)h+="<div class=\"box\">Accepted</div>"
-  if(!room.offer)h+="<div class=\"box\">No offer</div>"
-  else h+="<table><tr><td>From</td><td>"+esc(room.offer.username)+"</td></tr><tr><td>Gives</td><td>"+catsText(room.offer.cats)+"</td></tr><tr><td>Ração</td><td>"+safeNum(room.offer.currency)+"</td></tr></table>"
-  if(room.offer&&!isMineOffer()&&!room.accepted&&!room.cancelled){
-    h+="<div class=\"box\"><b>Your offer</b><div id=\"replyPicker\">"+pickerHtml("replyPick")+"</div><div class=\"row\">Ração "+currencyInput("replyCurrency",0)+"</div><button data-act=\"sendProposal\">Send</button></div>"
+  let h=""
+  if(room.view==="busy"){
+    h+="<div class=\"box bad\">They are already in a trade.</div>"
+    q("#liveRoom").innerHTML=h
+    return
   }
-  if(room.proposal){
-    h+="<h2>Proposal</h2><table><tr><td>From</td><td>"+esc(room.proposal.username)+"</td></tr><tr><td>Gives</td><td>"+catsText(room.proposal.cats)+"</td></tr><tr><td>Ração</td><td>"+safeNum(room.proposal.currency)+"</td></tr></table>"
-    if(isCreator()&&!room.accepted&&!room.cancelled)h+="<button data-act=\"acceptProposal\">Accept</button><button data-act=\"declineProposal\">No</button>"
+  if(room.view==="ended"||room.accepted){
+    h+=renderEnded()
+    q("#liveRoom").innerHTML=h
+    return
   }
+  if(room.cancelled){
+    h+="<div class=\"box bad\">Trade cancelled.</div>"
+    q("#liveRoom").innerHTML=h
+    return
+  }
+  if(room.view==="waiting"){
+    let left=room.meta?room.meta.expires-now():WAIT_MS
+    h+="<div class=\"wait\"><div><b>Waiting for someone to join the link...</b><br><br>"+fmt(left)+" left<br><br><button data-act=\"copyCurrent\">Copy link</button><button data-act=\"cancelCurrent\">Cancel</button></div></div>"
+    if(room.meta)h+="<div class=\"box\">Link is live. When someone joins, this page changes automatically.</div>"
+    q("#liveRoom").innerHTML=h
+    return
+  }
+  let me=sideOfMe()
+  let ownerName=room.meta?safeUser(room.meta.ownerName):"???"
+  let guestName=room.meta?safeUser(room.meta.guestName):"???"
+  let left=room.meta?room.meta.expires-now():0
+  h+="<h2>Room "+esc(room.id)+"</h2>"
+  h+="<div class=\"box "+(expiredRoom()?"bad":"")+"\">Timer: "+fmt(left)+"</div>"
+  if(expiredRoom())h+="<div class=\"box bad\">Trade expired. Make a new link.</div>"
+  h+="<div class=\"tradegrid\">"
+  h+="<div class=\"box\"><b>Offer: "+esc(ownerName)+"</b>"+slotsHtml("owner",room.ownerOffer,canEdit("owner"))+readyLine("owner")+"</div>"
+  h+="<div class=\"box\"><b>"+esc(guestName)+"'s offer:</b>"+slotsHtml("guest",room.guestOffer,canEdit("guest"))+readyLine("guest")+"</div>"
+  h+="</div>"
+  if(me){
+    h+="<div class=\"box\">"
+    if(!(sideReady(me)&&sideReady(me).ready))h+="<button data-act=\"readyTrade\" data-side=\""+esc(me)+"\" "+(expiredRoom()?"disabled":"")+">Ready 5s</button>"
+    else h+="<button data-act=\"unreadyTrade\" data-side=\""+esc(me)+"\">Unready</button>"
+    if(me==="owner"&&readyValid("owner")&&readyValid("guest")&&!expiredRoom())h+="<button data-act=\"acceptTrade\">Accept trade</button>"
+    h+="<button data-act=\"leaveTrade\">Leave</button>"
+    h+="</div>"
+  }
+  h+="<div class=\"box tiny\">Changing items removes ready. Owner accepts only after both sides are ready.</div>"
   q("#liveRoom").innerHTML=h
 }
-async function sendProposal(){
-  if(!room||!room.offer){tmsg("No room");return}
-  let picks=selected("replyPick")
-  if(!picks.length){tmsg("Pick a cat");return}
-  let cats=picks.map(findCat).filter(Boolean).slice(0,12).map(copyCat)
-  let cur=capCurrency("replyCurrency")
-  let prop={type:"proposal",id:room.id,username:state.username,sid:state.sid,cats,currency:cur,t:Date.now()}
-  livePut(room.id,"proposal",await lock(room.k,prop))
-  let tr=state.joinedTrades.find(t=>t.id===room.id)
-  if(!tr){
-    tr={id:room.id,k:room.k,link:base()+"#t="+room.id+"."+room.k,short:"",status:"waiting",made:Date.now(),offerHashes:[],offerCurrency:0,proposalHashes:[],proposalCurrency:0}
-    state.joinedTrades.unshift(tr)
+function readyLine(side){
+  let r=sideReady(side),o=sideOffer(side)
+  if(readyTimers[side]&&readyTimers[side]>now())return"<div class=\"row warn\">confirming "+fmt(readyTimers[side]-now())+"</div>"
+  if(r&&r.ready&&o&&r.version===o.version)return"<div class=\"row ok\">Ready</div>"
+  if(r&&r.ready)return"<div class=\"row warn\">Ready reset</div>"
+  return"<div class=\"row\">Not ready</div>"
+}
+function renderEnded(){
+  let a=room.accepted
+  if(!a)return"<div class=\"box\">Trade ended.</div>"
+  let youOwner=a.ownerSid===state.sid
+  let youGuest=a.guestSid===state.sid
+  let theirName=youOwner?a.guestName:a.ownerName
+  let youGot=youOwner?a.guestOffer:a.ownerOffer
+  let youGave=youOwner?a.ownerOffer:a.guestOffer
+  let h="<h2>Trade ended</h2>"
+  h+="<div class=\"box ok\"><b>Accepted</b><br>"+esc(a.ownerName)+" traded with "+esc(a.guestName)+"</div>"
+  h+="<div class=\"tradegrid\">"
+  h+="<div class=\"box\"><b>"+esc(a.ownerName)+" traded</b>"+catsText(a.ownerOffer.cats)+"<div>Ração: "+safeNum(a.ownerOffer.currency)+"</div></div>"
+  h+="<div class=\"box\"><b>"+esc(a.guestName)+" traded</b>"+catsText(a.guestOffer.cats)+"<div>Ração: "+safeNum(a.guestOffer.currency)+"</div></div>"
+  h+="</div>"
+  if(youOwner||youGuest){
+    let tag=(youOwner?"owner:":"guest:")+a.id
+    if(state.doneTrades.includes(tag))h+="<div class=\"box ok\">Your side already saved.</div>"
+    else h+="<div class=\"box\"><button data-act=\"claimTrade\">Claim trade</button><br><span class=\"tiny\">You get: "+esc(offerText(youGot))+"<br>You give: "+esc(offerText(youGave))+"</span></div>"
+  }else h+="<div class=\"box\">You can only view what was traded.</div>"
+  return h
+}
+function renderPicker(){
+  if(!room)return
+  let term=(q("#pickSearch").value||"").toLowerCase()
+  q("#pickerInfo").textContent="Pick up to "+MAXCATS+" cats. Names can only be letters."
+  q("#pickCurrency").value=pickCurrency
+  let h=""
+  state.cats.forEach(c=>{
+    let text=(c.name+" "+c.rarity+" "+c.breed+" "+c.hash).toLowerCase()
+    if(term&&!text.includes(term))return
+    let checked=pickHashes.includes(c.hash)?"checked":""
+    h+="<label class=\"pickcard\"><input type=\"checkbox\" name=\"pickCat\" value=\""+esc(c.hash)+"\" "+checked+"><br><img src=\""+esc(c.url)+"\" alt=\"cat\"><br><b>"+catName(c)+"</b><br><span class=\"badge\">"+esc(c.rarity)+"</span><br><span class=\"tiny\">"+esc(c.hash.slice(0,6))+"</span></label>"
+  })
+  q("#pickList").innerHTML=h||"<div class=\"box\">No cats</div>"
+}
+function openPicker(side){
+  if(!room||!canEdit(side))return
+  pickSide=side
+  let o=sideOffer(side)||{cats:[],currency:0}
+  pickHashes=(o.cats||[]).map(c=>c.hash).filter(h=>findCat(h)).slice(0,MAXCATS)
+  pickCurrency=safeNum(o.currency)
+  q("#pickSearch").value=""
+  goPage("picker")
+}
+async function savePick(){
+  if(!room||!pickSide)return
+  if(!canEdit(pickSide)){goPage("trade");return}
+  let hashes=qa("input[name='pickCat']:checked").map(x=>x.value).filter(h=>findCat(h)).slice(0,MAXCATS)
+  let cur=safeNum(q("#pickCurrency").value)
+  if(cur>state.racao)cur=state.racao
+  let old=sideOffer(pickSide)
+  let version=safeNum(old&&old.version)+1
+  let offer={type:"offer",sid:state.sid,username:state.username,cats:hashes.map(findCat).filter(Boolean).map(copyCat),currency:cur,version,t:now()}
+  if(pickSide==="owner"){
+    room.ownerOffer=offer
+    room.ownerReady={sid:state.sid,username:state.username,ready:false,version,t:now()}
+    await putField(room.id,room.k,"ownerOffer",offer)
+    await putField(room.id,room.k,"ownerReady",room.ownerReady)
+  }else{
+    room.guestOffer=offer
+    room.guestReady={sid:state.sid,username:state.username,ready:false,version,t:now()}
+    await putField(room.id,room.k,"guestOffer",offer)
+    await putField(room.id,room.k,"guestReady",room.guestReady)
   }
-  tr.status="waiting"
-  tr.proposalHashes=cats.map(c=>c.hash)
-  tr.proposalCurrency=cur
-  saveProfile()
-  room.proposal=prop
+  goPage("trade")
   renderRoom()
-  renderJoinedLinks()
-  tmsg("Sent")
 }
-async function acceptProposal(){
-  if(!room||!room.offer||!room.proposal){tmsg("No proposal");return}
-  if(!isCreator()){tmsg("Not yours");return}
-  let tag="creator:"+room.id
-  if(state.doneTrades.includes(tag)){tmsg("Done");return}
-  let offerCats=(room.offer.cats||[]).map(cleanCat)
-  let propCats=(room.proposal.cats||[]).map(cleanCat)
-  let offerCurrency=safeNum(room.offer.currency)
-  let propCurrency=safeNum(room.proposal.currency)
-  if(offerCats.some(c=>!findCat(c.hash))||state.racao<offerCurrency){tmsg("Missing item");return}
-  for(let c of offerCats)removeCat(c.hash)
-  state.racao=Math.max(0,state.racao-offerCurrency)
-  for(let c of propCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
-  state.racao+=propCurrency
-  state.doneTrades.push(tag)
-  let tr=state.createdTrades.find(t=>t.id===room.id)
-  if(tr)tr.status="accepted"
-  let acc={type:"accepted",id:room.id,fromUser:state.username,fromSid:state.sid,toUser:room.proposal.username,toSid:room.proposal.sid,ownerCats:offerCats,ownerCurrency:offerCurrency,replyCats:propCats,replyCurrency:propCurrency,t:Date.now()}
-  room.accepted=acc
-  livePut(room.id,"accepted",await lock(room.k,acc))
-  saveProfile()
-  render()
+async function setReady(side,val){
+  if(!room||side!==sideOfMe())return
+  let o=sideOffer(side)
+  if(!o)return
+  let r={sid:state.sid,username:state.username,ready:!!val,version:o.version,t:now()}
+  if(side==="owner"){
+    room.ownerReady=r
+    await putField(room.id,room.k,"ownerReady",r)
+  }else{
+    room.guestReady=r
+    await putField(room.id,room.k,"guestReady",r)
+  }
   renderRoom()
-  tmsg("Accepted")
 }
-async function declineProposal(){
-  if(!room||!room.proposal)return
-  let dec={type:"declined",id:room.id,fromUser:state.username,fromSid:state.sid,toUser:room.proposal.username,toSid:room.proposal.sid,t:Date.now()}
-  livePut(room.id,"declined",await lock(room.k,dec))
-  let tr=state.createdTrades.find(t=>t.id===room.id)
-  if(tr)tr.status="open"
-  room.proposal=null
-  saveProfile()
+async function startReady(side){
+  if(!room||side!==sideOfMe()||expiredRoom())return
+  if(!validateOwnOffer(sideOffer(side))){tmsg("You do not have those items anymore");return}
+  readyTimers[side]=now()+READY_MS
+  renderRoom()
+  await wait(READY_MS)
+  if(room&&side===sideOfMe()&&readyTimers[side]&&readyTimers[side]<=now()){
+    delete readyTimers[side]
+    await setReady(side,true)
+  }
+}
+function validateOwnOffer(o){
+  o=cleanOffer(o)
+  if(state.racao<safeNum(o.currency))return false
+  for(let c of o.cats)if(!findCat(c.hash))return false
+  let unique=new Set(o.cats.map(c=>c.hash))
+  return unique.size===o.cats.length
+}
+async function acceptTrade(){
+  if(!room||sideOfMe()!=="owner"||!readyValid("owner")||!readyValid("guest")||expiredRoom())return
+  if(!validateOwnOffer(room.ownerOffer)){tmsg("You do not have those items anymore");return}
+  if(!confirm("Accept this trade?"))return
+  let a={type:"accepted",id:room.id,ownerSid:room.meta.ownerSid,ownerName:room.meta.ownerName,guestSid:room.meta.guestSid,guestName:room.meta.guestName,ownerOffer:room.ownerOffer,guestOffer:room.guestOffer,t:now()}
+  room.accepted=cleanAccepted(a)
+  await putField(room.id,room.k,"accepted",a)
+  let meta=Object.assign({},room.meta,{status:"ended",expires:now(),nonce:rid(5)})
+  room.meta=cleanMeta(meta)
+  await putField(room.id,room.k,"meta",meta)
+  await claimAccepted(a)
+  markCreatedStatus(room.id,"ended")
   renderTrade()
-  tmsg("Declined")
 }
-async function cancelTrade(id){
-  let t=state.createdTrades.find(x=>x.id===id)
-  if(!t)return
-  if(!confirm("Cancel?"))return
-  livePut(id,"cancelled",await lock(t.k,{type:"cancelled",id,username:state.username,sid:state.sid,t:Date.now()}))
-  t.status="cancelled"
-  saveProfile()
-  renderTrade()
-  tmsg("Cancelled")
-}
-function handleAccepted(id,k,acc){
-  if(!acc)return
-  if(room&&room.id===id){room.accepted=acc;renderRoom()}
-  if(acc.toSid!==state.sid&&acc.toUser!==state.username)return
-  let tag="reply:"+id
+async function claimAccepted(acc){
+  acc=cleanAccepted(acc)
+  if(!acc||!acc.id)return
+  let owner=acc.ownerSid===state.sid
+  let guest=acc.guestSid===state.sid
+  if(!owner&&!guest)return
+  let tag=(owner?"owner:":"guest:")+acc.id
   if(state.doneTrades.includes(tag))return
-  let prop=state.joinedTrades.find(t=>t.id===id)
-  let replyCats=(acc.replyCats||[]).map(cleanCat)
-  let ownerCats=(acc.ownerCats||[]).map(cleanCat)
-  for(let c of replyCats)removeCat(c.hash)
-  state.racao=Math.max(0,state.racao-safeNum(acc.replyCurrency))
-  for(let c of ownerCats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
-  state.racao+=safeNum(acc.ownerCurrency)
+  let give=owner?acc.ownerOffer:acc.guestOffer
+  let get=owner?acc.guestOffer:acc.ownerOffer
+  if(!validateOwnOffer(give)){
+    tmsg("Cannot claim because the offered items are missing")
+    return
+  }
+  for(let c of give.cats)removeCat(c.hash)
+  state.racao=Math.max(0,state.racao-safeNum(give.currency))
+  for(let c of get.cats)addCat(Object.assign({},c,{got:todayKey(),trade:true}))
+  state.racao+=safeNum(get.currency)
   state.doneTrades.push(tag)
-  if(prop)prop.status="accepted"
+  state.history.unshift({id:acc.id,t:acc.t,other:owner?acc.guestName:acc.ownerName,you:offerText(give),them:offerText(get)})
+  state.history=state.history.slice(0,80)
+  let tr=state.createdTrades.find(t=>t.id===acc.id)||state.joinedTrades.find(t=>t.id===acc.id)
+  if(tr)tr.status="ended"
   saveProfile()
   render()
-  tmsg("Claimed")
+  renderTrade()
+}
+async function cancelCurrent(){
+  if(!room||!room.id)return
+  if(!confirm("Cancel trade?"))return
+  await putField(room.id,room.k,"cancelled",{type:"cancelled",id:room.id,sid:state.sid,username:state.username,t:now()})
+  room.cancelled={type:"cancelled",id:room.id,sid:state.sid,username:state.username,t:now()}
+  let tr=state.createdTrades.find(t=>t.id===room.id)||state.joinedTrades.find(t=>t.id===room.id)
+  if(tr)tr.status="cancelled"
+  saveProfile()
+  renderTrade()
+}
+function handleMetaSeen(id,k,m){
+  m=cleanMeta(m)
+  let t=state.createdTrades.find(x=>x.id===id)
+  if(t){
+    t.status=m.status==="open"?"waiting":m.status
+    saveProfile()
+    if(room&&room.id===id&&m.guestSid&&room.view==="waiting"){room.view="room";room.meta=m;renderRoom()}
+  }
+}
+function handleAccepted(id,k,a){
+  a=cleanAccepted(a)
+  if(!a||!a.id)return
+  if(room&&room.id===id){room.accepted=a;room.view="ended";renderRoom()}
+  let tr=state.createdTrades.find(t=>t.id===id)||state.joinedTrades.find(t=>t.id===id)
+  if(tr)tr.status="ended"
+  claimAccepted(a)
+}
+function handleCancelled(id,k,c){
+  let tr=state.createdTrades.find(t=>t.id===id)||state.joinedTrades.find(t=>t.id===id)
+  if(tr)tr.status="cancelled"
+  saveProfile()
+  renderTrade()
 }
 function bootWatches(){
   if(!root)return
-  for(let t of state.createdTrades.concat(state.joinedTrades)){
-    if(t.id&&t.k&&t.status!=="cancelled"&&t.status!=="accepted")startWatch(t.id,t.k)
-  }
+  state.createdTrades.concat(state.joinedTrades).forEach(t=>{
+    if(t.id&&t.k&&t.status!=="ended"&&t.status!=="cancelled")watchRoom(t.id,t.k)
+  })
 }
-function goPage(name){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"))
-  q("#"+name).classList.add("on")
-  if(name==="trade")renderTrade()
+function renderHistory(){
+  if(!state.history.length){q("#historyBox").innerHTML="None";return}
+  q("#historyBox").innerHTML=state.history.map(h=>"<div class=\"box\"><b>"+esc(h.id)+"</b> with "+esc(h.other)+"<br><span class=\"tiny\">"+esc(new Date(h.t).toLocaleString())+"</span><br>You traded: "+esc(h.you)+"<br>You got: "+esc(h.them)+"</div>").join("")
 }
 function enterApp(){
   q("#gate").classList.remove("on")
@@ -743,28 +1174,57 @@ function enterApp(){
 q("#nameInput").oninput=()=>{q("#nameInput").value=cleanUser(q("#nameInput").value)}
 q("#setName").onclick=()=>{
   let n=cleanUser(q("#nameInput").value)
-  if(n.length<3){q("#gateMsg").textContent="3 letters";return}
+  if(!validUser(n)){q("#gateMsg").textContent="Username must be exactly 3 letters";return}
   state.username=n
   saveProfile()
   q("#gateMsg").textContent=""
   enterApp()
+  checkSecurity(true)
   openFromHash()
 }
 q("#grab").onclick=grab
-q("#makeTrade").onclick=createTrade
+q("#makeTrade").onclick=makeTrade
+q("#refreshTrade").onclick=()=>{if(room)joinOrOpen(room.id,room.k,false)}
 q("#deleteAll").onclick=()=>{
   let x=prompt("Type RESET")
   if(x==="RESET"){
-    let u=state.username,sid=state.sid
+    let u=state.username,sid=state.sid,sec=state.security
     state=freshState()
     state.username=u
     state.sid=sid
+    state.security=sec
     saveProfile()
     render()
     msg("Reset")
   }
 }
-document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>goPage(b.dataset.page))
+q("#catSearch").oninput=render
+q("#pickSearch").oninput=renderPicker
+q("#pickCurrency").oninput=()=>{let v=safeNum(q("#pickCurrency").value);if(v>state.racao)v=state.racao;q("#pickCurrency").value=v;pickCurrency=v}
+q("#pickMax").onclick=()=>{pickCurrency=state.racao;q("#pickCurrency").value=pickCurrency}
+q("#savePick").onclick=savePick
+q("#clearPick").onclick=()=>{pickHashes=[];pickCurrency=0;q("#pickCurrency").value=0;qa("input[name='pickCat']").forEach(x=>x.checked=false)}
+q("#backTrade").onclick=()=>goPage("trade")
+q("#securityCheck").onclick=()=>checkSecurity(true)
+q("#saveName").onclick=()=>{
+  let n=cleanUser(q("#settingsName").value)
+  if(!validUser(n)){msg("Username must be exactly 3 letters");return}
+  state.username=n
+  saveProfile()
+  render()
+  msg("Username saved")
+}
+q("#settingsName").oninput=()=>{q("#settingsName").value=cleanUser(q("#settingsName").value)}
+qa(".nav button").forEach(b=>b.onclick=()=>goPage(b.dataset.page))
+document.body.addEventListener("change",e=>{
+  if(e.target.name==="pickCat"){
+    let checked=qa("input[name='pickCat']:checked")
+    if(checked.length>MAXCATS){
+      e.target.checked=false
+      tmsg("Max "+MAXCATS+" cats")
+    }
+  }
+})
 document.body.addEventListener("click",e=>{
   let b=e.target.closest("[data-act]")
   if(!b)return
@@ -784,39 +1244,49 @@ document.body.addEventListener("click",e=>{
   }
   if(act==="openTrade"){
     let t=state.createdTrades.find(x=>x.id===id)
-    if(t)openRoom(t.id,t.k,false)
+    if(t)joinOrOpen(t.id,t.k,false)
   }
   if(act==="openJoined"){
     let t=state.joinedTrades.find(x=>x.id===id)
-    if(t)openRoom(t.id,t.k,false)
+    if(t)joinOrOpen(t.id,t.k,false)
   }
-  if(act==="cancelTrade")cancelTrade(id)
-  if(act==="sendProposal")sendProposal()
-  if(act==="acceptProposal")acceptProposal()
-  if(act==="declineProposal")declineProposal()
-  if(act==="maxCurrency"){
-    let x=q("#"+b.dataset.target)
-    if(x)x.value=state.racao
+  if(act==="cancelTrade"){
+    let t=state.createdTrades.find(x=>x.id===id)
+    if(t){room={id:t.id,k:t.k};cancelCurrent()}
   }
+  if(act==="copyCurrent"){
+    let t=state.createdTrades.find(x=>x.id===room.id)||state.joinedTrades.find(x=>x.id===room.id)
+    copyText((t&&t.short)||(t&&t.link)||base()+"#t="+room.id+"."+room.k)
+    tmsg("Copied")
+  }
+  if(act==="cancelCurrent")cancelCurrent()
+  if(act==="openPicker")openPicker(b.dataset.side)
+  if(act==="readyTrade")startReady(b.dataset.side)
+  if(act==="unreadyTrade")setReady(b.dataset.side,false)
+  if(act==="acceptTrade")acceptTrade()
+  if(act==="claimTrade"&&room&&room.accepted)claimAccepted(room.accepted)
+  if(act==="leaveTrade"){room=null;q("#liveRoom").innerHTML="";tmsg("Left room")}
 })
 document.body.addEventListener("input",e=>{
   let x=e.target
-  if(x.id==="offerCurrency"||x.id==="replyCurrency")capCurrency(x.id)
   if(x.dataset&&x.dataset.act==="rename"){
     let c=findCat(x.dataset.h)
     if(c){
-      c.name=cleanCatName(x.value)
-      x.value=c.name
+      let cleaned=cleanCatName(x.value)
+      if(x.value!==cleaned)x.value=cleaned
+      c.name=cleaned
       saveProfile()
     }
   }
 })
 window.addEventListener("hashchange",openFromHash)
 async function init(){
-  let s=loadProfile()
-  state=normalizeState(s)
+  state=normalizeState(loadProfile())
+  if(clockTimer)clearInterval(clockTimer)
+  clockTimer=setInterval(tick,1000)
   if(state.username){
     enterApp()
+    checkSecurity(false)
     await openFromHash()
   }else{
     q("#app").style.display="none"
